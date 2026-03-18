@@ -7,6 +7,7 @@ from pytmx.util_pygame import load_pygame
 from src.scenes.base_scene import BaseScene
 from src.entities.player import Player
 from src.battle.encounter import EncounterManager
+from src.entities.enemy_system import EnemyGroup
 from src.audio_manager import get_audio_manager
 from src.constants import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, WHITE, FONT_SIZE_SMALL, scaled
 from src.font import get_font
@@ -75,6 +76,7 @@ class MapScene(BaseScene):
         # 宝箱・ギミック管理（game.py側で初期化後に設定される）
         self.treasure_manager = None
         self.gimmick_manager = None
+        self.door_manager = None
 
         # スクリプトフェード/ウェイト（対話コルーチン用）
         self._script_fade_state = None   # "out" / "in" / None
@@ -82,6 +84,16 @@ class MapScene(BaseScene):
         self._script_wait_timer = 0.0
         self._script_fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self._script_fade_surface.fill((0, 0, 0))
+
+        # ロケーション名表示
+        self._location_name_text = ""
+        self._location_name_alpha = 0
+        self._location_name_timer = 0.0
+        self._location_name_phase = None  # "in" / "hold" / "out" / None
+        self._location_name_last_map = None
+
+        # ボスバトル結果（push_scene経由のバトルから戻った時用）
+        self._pending_coroutine_result = None
         
     def _load_maps(self):
         """マップデータを読み込み"""
@@ -114,6 +126,10 @@ class MapScene(BaseScene):
             self.treasure_manager.load_chests(self.current_map, self.tmx_data)
         if self.gimmick_manager is not None and self.tmx_data is not None:
             self.gimmick_manager.load_gimmicks(self.current_map, self.tmx_data)
+        if self.door_manager is not None and self.tmx_data is not None:
+            self.door_manager.load_from_tmx(self.current_map, self.tmx_data)
+            self.door_manager.on_door_opened = self._on_door_animation_complete
+            self.door_manager._on_tile_removed_callback = self._redraw_tmx_surface
 
     def _load_npcs_for_current_map(self):
         """現在のマップ/レイヤーのNPCを取得"""
@@ -151,6 +167,18 @@ class MapScene(BaseScene):
 
         # 宝箱・ギミックを読み込み
         self._load_chests_and_gimmicks()
+
+        # ロケーション名表示
+        if self.current_map != self._location_name_last_map:
+            self._location_name_last_map = self.current_map
+            display_name = ""
+            if self.current_map_data:
+                display_name = self.current_map_data.get("display_name", "")
+            if display_name:
+                self._location_name_text = display_name
+                self._location_name_alpha = 0
+                self._location_name_timer = 0.0
+                self._location_name_phase = "in"
 
         # BGMを再生
         self._play_map_bgm()
@@ -192,7 +220,13 @@ class MapScene(BaseScene):
                         print("BGM resumed")
     
     def on_resume(self):
-        """push_sceneから戻った時の処理（ショップ終了後等）"""
+        """push_sceneから戻った時の処理（ショップ終了後・ボスバトル終了後等）"""
+        # ボスバトルからの帰還チェック
+        battle_result = getattr(self.game, '_last_battle_result', None)
+        if battle_result is not None:
+            self.game._last_battle_result = None
+            self._pending_coroutine_result = battle_result
+
         if self.dialogue_coroutine is not None:
             self._advance_dialogue()
 
@@ -200,6 +234,11 @@ class MapScene(BaseScene):
         """更新処理"""
         if self.fade_state is not None:
             self._update_fade_transition()
+            return
+
+        # ドアアニメーション中は入力をロック
+        if self.door_manager is not None and self.door_manager.is_animating():
+            self.door_manager.update(1.0 / 60.0)
             return
 
         # スクリプトフェード/ウェイト処理
@@ -212,9 +251,16 @@ class MapScene(BaseScene):
             self.dialogue_renderer.update()
             return
 
+        # ロケーション名フェード更新
+        self._update_location_name()
+
         # NPC移動の更新
         if self.npc_manager is not None:
             self.npc_manager.update_npcs(self.current_map, self._current_layer, 1.0 / 60.0)
+
+        # ドアアニメーション更新（アニメ中以外も毎フレーム状態管理のため呼ぶ）
+        if self.door_manager is not None:
+            self.door_manager.update(1.0 / 60.0)
 
         step_completed = self.player.update()
 
@@ -426,6 +472,109 @@ class MapScene(BaseScene):
                 self._advance_dialogue()
             return
 
+    def _update_location_name(self):
+        """ロケーション名のフェードイン/ホールド/フェードアウトを更新"""
+        if self._location_name_phase is None:
+            return
+
+        if self._location_name_phase == "in":
+            self._location_name_alpha = min(255, self._location_name_alpha + 8)
+            if self._location_name_alpha >= 255:
+                self._location_name_phase = "hold"
+                self._location_name_timer = 2.0  # 2秒間表示
+
+        elif self._location_name_phase == "hold":
+            self._location_name_timer -= 1.0 / 60.0
+            if self._location_name_timer <= 0:
+                self._location_name_phase = "out"
+
+        elif self._location_name_phase == "out":
+            self._location_name_alpha = max(0, self._location_name_alpha - 6)
+            if self._location_name_alpha <= 0:
+                self._location_name_phase = None
+
+    def _draw_location_name(self, screen: pygame.Surface):
+        """ロケーション名を画面上部に描画"""
+        if self._location_name_phase is None or self._location_name_alpha <= 0:
+            return
+
+        font = get_font(scaled(20))
+        text_surf = font.render(self._location_name_text, True, WHITE)
+
+        # 背景バー
+        bar_w = text_surf.get_width() + scaled(60)
+        bar_h = text_surf.get_height() + scaled(16)
+        bar_x = (SCREEN_WIDTH - bar_w) // 2
+        bar_y = scaled(40)
+
+        bg_surf = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
+        bg_surf.fill((0, 0, 0, min(180, self._location_name_alpha)))
+        # 枠線
+        pygame.draw.rect(bg_surf, (200, 180, 120, min(200, self._location_name_alpha)), (0, 0, bar_w, bar_h), 2)
+        screen.blit(bg_surf, (bar_x, bar_y))
+
+        # テキスト
+        text_surf.set_alpha(self._location_name_alpha)
+        text_x = bar_x + (bar_w - text_surf.get_width()) // 2
+        text_y = bar_y + (bar_h - text_surf.get_height()) // 2
+        screen.blit(text_surf, (text_x, text_y))
+
+    def _draw_location_markers(self, screen: pygame.Surface):
+        """ワールドマップ上にロケーションマーカーを描画"""
+        if not self._is_field_map(self.current_map):
+            return
+        if not self.warp_areas:
+            return
+
+        # パルスアニメーション
+        import math
+        pulse = 0.7 + 0.3 * math.sin(pygame.time.get_ticks() * 0.003)
+
+        for warp in self.warp_areas:
+            map_id = warp.get("map_id")
+            if not map_id:
+                continue
+
+            # マーカーの色を決定
+            map_data = self.maps_data.get(map_id, {})
+            map_name = str(map_data.get("name", "")).lower()
+            map_key = str(map_id).lower()
+
+            if any(t in map_key or t in map_name for t in ["town", "村", "町"]):
+                color = (80, 140, 255)  # 青 (町)
+            elif any(t in map_key or t in map_name for t in ["cave", "dungeon", "洞窟"]):
+                color = (255, 80, 80)  # 赤 (ダンジョン)
+            elif any(t in map_key or t in map_name for t in ["castle", "城"]):
+                color = (255, 220, 60)  # 黄 (城)
+            else:
+                continue  # マーカーを描画しない
+
+            rect = warp["rect"]
+            cx = rect.centerx - self.camera_x
+            cy = rect.centery - self.camera_y
+            radius = int(scaled(6) * pulse)
+
+            # 外側のグロー
+            glow_surf = pygame.Surface((radius * 4, radius * 4), pygame.SRCALPHA)
+            pygame.draw.circle(glow_surf, (*color, 60), (radius * 2, radius * 2), radius * 2)
+            screen.blit(glow_surf, (cx - radius * 2, cy - radius * 2))
+
+            # メインの点
+            pygame.draw.circle(screen, color, (cx, cy), radius)
+            pygame.draw.circle(screen, WHITE, (cx, cy), max(1, radius - scaled(2)))
+
+            # ラベル
+            label_font = get_font(scaled(10))
+            display_name = map_data.get("display_name", map_data.get("name", map_id))
+            label = label_font.render(display_name, True, WHITE)
+            label_x = cx - label.get_width() // 2
+            label_y = cy - radius - label.get_height() - scaled(2)
+            # ラベル背景
+            bg = pygame.Surface((label.get_width() + scaled(4), label.get_height() + scaled(2)), pygame.SRCALPHA)
+            bg.fill((0, 0, 0, 140))
+            screen.blit(bg, (label_x - scaled(2), label_y - scaled(1)))
+            screen.blit(label, (label_x, label_y))
+
     def _update_fade_transition(self):
         """フェードの進行を更新"""
         if self.fade_state == "out":
@@ -550,11 +699,16 @@ class MapScene(BaseScene):
             self.dialogue_renderer.reset()
             return
 
-        # 選択肢の結果を送る
+        # ボスバトル結果 or 選択肢の結果を送る
+        pending_result = self._pending_coroutine_result
+        if pending_result is not None:
+            self._pending_coroutine_result = None
         choice_result = self.dialogue_renderer.get_choice_result()
 
         try:
-            if choice_result is not None:
+            if pending_result is not None:
+                yielded = runner.send(pending_result)
+            elif choice_result is not None:
                 yielded = runner.send(choice_result)
             else:
                 yielded = next(runner)
@@ -601,6 +755,12 @@ class MapScene(BaseScene):
                 self._script_fade_alpha = 255
             elif cmd == "wait" and len(yielded) >= 2:
                 self._script_wait_timer = float(yielded[1])
+            elif cmd == "battle" and len(yielded) >= 2:
+                # ボスバトル: コルーチンを保持したままバトルシーンへ
+                enemy_type = str(yielded[1])
+                count = int(yielded[2]) if len(yielded) >= 3 else 1
+                level = int(yielded[3]) if len(yielded) >= 4 else 1
+                self._start_script_battle(enemy_type, count, level)
             else:
                 logger.warning("Unknown dialogue command: %s", cmd)
                 self.dialogue_coroutine = None
@@ -918,6 +1078,20 @@ class MapScene(BaseScene):
             if self.gimmick_manager.is_tile_blocked(tile_x, tile_y, direction):
                 return True
 
+        # ドアチェック（閉じたドアはブロック。開く処理はupdate内で実施）
+        if self.door_manager is not None:
+            if self.door_manager.is_tile_blocked(tile_x, tile_y):
+                result = self.door_manager.try_open(tile_x, tile_y, self.game.inventory)
+                if result is None:
+                    return True
+                if result.status in ("locked_no_key", "locked_wrong_key"):
+                    self.dialogue_renderer.show_dialogue("", result.message)
+                    return True
+                # status == "opened": ドアが開いた
+                if result.dest_map:
+                    self._begin_door_transition(result)
+                return False  # 通過OK
+
         if self.tmx_data is None:
             return False
 
@@ -1096,6 +1270,48 @@ class MapScene(BaseScene):
             if event.message:
                 self.dialogue_renderer.show_dialogue("", event.message)
 
+    def _start_script_battle(self, enemy_type: str, count: int, level: int):
+        """スクリプトからのボスバトルを開始（push_scene経由）"""
+        enemy_system = self.encounter_manager.enemy_system
+
+        group_data = {
+            "group_id": f"boss_{enemy_type}",
+            "name": f"Boss: {enemy_type}",
+            "difficulty": 3,
+            "base_rewards": {
+                "exp": level * 40,
+                "gold": level * 25,
+            },
+            "drops": [],
+            "enemies": [
+                {
+                    "enemy_type": enemy_type,
+                    "min_count": count,
+                    "max_count": count,
+                    "level_modifier": 0,
+                }
+            ],
+            "formation": {"positions": [], "sprite_scale": []},
+        }
+
+        party = getattr(self.game, "party", None)
+        party_level = 1
+        if party:
+            party_level = max(1, max(m.get("level", 1) for m in party))
+
+        enemy_group = EnemyGroup(group_data, enemy_system, party_level=level)
+        rewards_data = self.encounter_manager.build_encounter_rewards(enemy_group)
+
+        # バトルシーンを設定してpush_scene
+        battle_scene = self.game.scenes.get("battle")
+        if battle_scene:
+            battle_scene.start_battle_with_group(enemy_group, rewards_data)
+            self.game._battle_from_script = True
+            self.audio_manager.play_se("se_encounter")
+            self.game.push_scene("battle")
+        else:
+            logger.warning("BattleScene not found for script battle")
+
     def _try_interact_gimmick(self) -> bool:
         """プレイヤーの前のギミックと対話を試みる"""
         if self.gimmick_manager is None:
@@ -1169,11 +1385,19 @@ class MapScene(BaseScene):
 
             self.player.draw(screen)
 
+        # ロケーションマーカー（ワールドマップ上）
+        self._draw_location_markers(screen)
+
         # ダイアログUIの描画（最前面）
         self.dialogue_renderer.draw(screen)
 
         # 宝箱の描画
         self._draw_chests(screen, offset_x=-self.camera_x, offset_y=-self.camera_y)
+
+        # ドアの描画（アニメーション中のドア）
+        if self.door_manager is not None and self.tmx_surface:
+            tile_size = self.tmx_data.tilewidth * self.tmx_tile_scale
+            self.door_manager.draw(screen, self.camera_x, self.camera_y, tile_size)
 
         if self.fade_alpha > 0:
             self.fade_surface.fill((0, 0, 0, self.fade_alpha))
@@ -1183,5 +1407,54 @@ class MapScene(BaseScene):
         if self._script_fade_alpha > 0:
             self._script_fade_surface.set_alpha(self._script_fade_alpha)
             screen.blit(self._script_fade_surface, (0, 0))
-        
+
+        # ロケーション名表示（最前面）
+        self._draw_location_name(screen)
+
+    def _redraw_tmx_surface(self):
+        """タイル変更後にTMXサーフェスを再描画"""
+        if self.tmx_data is None:
+            return
+        tw = self.tmx_data.tilewidth * self.tmx_tile_scale
+        th = self.tmx_data.tileheight * self.tmx_tile_scale
+        self._build_tmx_surface(tw, th)
+
+    def _begin_door_transition(self, result):
+        """ドア経由のマップ遷移を開始。dest_map="_prev" で前のマップへ戻る"""
+        from src.world.door_manager import DoorResult  # 循環import避けるため遅延import
+        dest = result.dest_map
+        dest_x = result.dest_x
+        dest_y = result.dest_y
+
+        if dest == "_prev":
+            rp = self.return_points.get(self.current_map)
+            if rp:
+                dest = rp["map_id"]
+                dest_x = rp.get("x")
+                dest_y = rp.get("y")
+            else:
+                return  # return_pointsが未記録なら遷移しない
+
+        self._begin_transition({
+            "kind":   "map",
+            "map_id": dest,
+            "dest_x": dest_x,
+            "dest_y": dest_y,
+            "entry":  result.entry,
+        })
+
+    def _on_door_animation_complete(self, door):
+        """ドアアニメーション完了コールバック。state保存とマップ遷移を発火"""
+        # dv2_ フラグは DoorManager.update() で既に保存済み
+        if door.dest_map:
+            from src.world.door_manager import DoorResult
+            result = DoorResult(
+                status="opened",
+                message=None,
+                dest_map=door.dest_map,
+                dest_x=door.dest_x,
+                dest_y=door.dest_y,
+                entry=door.entry,
+            )
+            self._begin_door_transition(result)
 
