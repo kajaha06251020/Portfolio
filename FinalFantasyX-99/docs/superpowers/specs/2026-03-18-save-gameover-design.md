@@ -41,8 +41,12 @@
       "name": "アルマ",
       "hp": 180, "max_hp": 180,
       "mp": 60,  "max_mp": 60,
-      "level": 12, "exp": 4200,
-      "job": "warrior",
+      "level": 12, "current_exp": 4200,
+      "current_job": "warrior",
+      "job_points": 0, "job_mastery": 0,
+      "base_max_hp": 180, "base_max_mp": 60,
+      "base_attack": 18, "base_defense": 9, "base_magic": 23,
+      "attack": 20, "defense": 10, "magic": 25,
       "equipment": {
         "weapon": "sword_mythril",
         "head": null,
@@ -123,14 +127,17 @@ class SaveManager:
 
 | データ | アクセス方法 |
 |---|---|
-| パーティ | `game.party` |
+| パーティ（シリアライズ） | `game.character_data.get_party()` で生データを取得（全フィールド含む） |
+| パーティ（デシリアライズ） | `game.character_data.replace_party(data["party"])` でマージ復元 |
 | インベントリ | `game.inventory` |
 | ゴールド | `game.gold` |
-| ワールドフラグ | `game.world_state_manager._state` |
+| ワールドフラグ | `game.world_state_manager._state` のディープコピー |
 | マップ位置 | `game.scenes["map"].current_map` / `player.grid_x` / `player.grid_y` |
 | プレイ時間 | `game.playtime_seconds`（新規追加） |
 | マップ表示名 | `game.scenes["map"].current_map_data.get("display_name")` |
 | レイヤー | `game.scenes["map"]._current_layer` |
+
+**注意:** `_serialize` では `game.character_data.get_party()` の返り値（`_party` リスト）を `copy.deepcopy` して保存する。これにより `current_exp`・`base_max_hp` 等の全フィールドが漏れなく保存される。
 
 ### ゲームオーバーペナルティ
 
@@ -238,13 +245,26 @@ save_manager.has_any_save() == True
 save_manager.load_latest()
 save_manager.apply_game_over_penalty()
     ↓
-game.change_scene("map")
+game.change_scene("map")  ← map_scene.on_enter() が実行される
     ↓
-save_type == "npc_priest" なら:
-    神父セリフを表示:
-    「死んでしまうとはな...
-     これも神様の思し召しであろう。
-     さぁ、行くがよい！！」
+on_enter() 完了後、update() の最初のフレームで:
+  map_scene._pending_priest_dialogue フラグを確認
+    ↓
+True の場合:
+  dialogue_renderer.show_dialogue("神父",
+    "死んでしまうとはな...\nこれも神様の思し召しであろう。\nさぁ、行くがよい！！")
+  フラグをクリア
+
+### 神父セリフのフラグ伝達方法
+
+```python
+# GameOverScene → MapScene へ伝達
+if save_manager.get_save_type() == "npc_priest":
+    game.scenes["map"]._pending_priest_dialogue = True
+game.change_scene("map")
+```
+
+`_pending_priest_dialogue` は `map_scene.__init__` で `False` に初期化し、`update()` の冒頭（フェード終了後）に確認してダイアログを発火する。`on_enter()` ではなく `update()` で処理することで、TMXロード・BGM再生・フェードイン完了後にセリフが表示される。
 ```
 
 ### セーブデータがない場合
@@ -261,12 +281,15 @@ game.change_scene("title")
 
 ## game.playtime_seconds の追加
 
-`game.py` に `playtime_seconds: float = 0.0` を追加し、メインループで毎フレーム加算する。
+`game.py` に `playtime_seconds: float = 0.0` を追加する。`game.py` には `update()` メソッドが存在しないため、`run()` ループ内の `clock.tick(FPS)` 戻り値を使って加算する。
 
 ```python
-# game.py の update() 内
+# game.py の run() ループ内
+dt = self.clock.tick(FPS) / 1000.0   # ミリ秒 → 秒
 self.playtime_seconds += dt
 ```
+
+`clock.tick(FPS)` の戻り値はすでにループ末尾で呼ばれているため、その行を `dt = self.clock.tick(FPS) / 1000.0` に置き換えるだけでよい。
 
 ---
 
