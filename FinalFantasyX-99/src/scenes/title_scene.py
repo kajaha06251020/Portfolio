@@ -21,25 +21,35 @@ class TitleScene(BaseScene):
         self.font_medium = None
         self.audio_manager = get_audio_manager()
         self.cursor_surface = None
-    
+        self.save_slot_ui = None
+        self._status_message: str = ""
+
     def on_enter(self):
         """シーンに入った時の初期化"""
         self.font_large = get_font(FONT_SIZE_LARGE * 2)
         self.font_medium = get_font(FONT_SIZE_MEDIUM)
         self.selected_index = 0
+        self._status_message = ""
         self._ensure_cursor_loaded()
-        
+
         # タイトルBGMを再生
         self.audio_manager.play_bgm("title", fade_in=500)
     
     def handle_events(self, events: list):
         """イベント処理"""
+        # SaveSlotUI がアクティブなときはそちらにすべてのイベントを渡す
+        if self.save_slot_ui is not None and self.save_slot_ui.is_active:
+            for event in events:
+                self.save_slot_ui.handle_event(event)
+            return
+
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    self.selected_index = (self.selected_index - 1) % len(self.menu_items)
-                elif event.key == pygame.K_DOWN:
-                    self.selected_index = (self.selected_index + 1) % len(self.menu_items)
+                if event.key in (pygame.K_UP, pygame.K_DOWN):
+                    self._status_message = ""
+                    self.selected_index = (
+                        self.selected_index + (-1 if event.key == pygame.K_UP else 1)
+                    ) % len(self.menu_items)
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     self._select_menu_item()
     
@@ -48,9 +58,27 @@ class TitleScene(BaseScene):
         if self.selected_index == 0:  # はじめから
             self.game.change_scene("map")
         elif self.selected_index == 1:  # つづきから
-            pass  # セーブ/ロード機能は後で実装
+            save_manager = getattr(self.game, "save_manager", None)
+            if save_manager is None or not save_manager.has_any_save():
+                self._status_message = "セーブデータがありません"
+            else:
+                self._status_message = ""
+                if self.save_slot_ui is None:
+                    from src.ui.save_slot_ui import SaveSlotUI
+                    self.save_slot_ui = SaveSlotUI(self.game)
+                self.save_slot_ui.show_load(self._on_load_slot_selected)
         elif self.selected_index == 2:  # おわる
             self.game.running = False
+
+    def _on_load_slot_selected(self, slot):
+        """ロードスロット選択コールバック"""
+        if slot is None:
+            return  # キャンセル
+        save_manager = getattr(self.game, "save_manager", None)
+        if save_manager and save_manager.load(slot):
+            self.game.change_scene("map")
+        else:
+            self._status_message = "ロードに失敗しました"
     
     def update(self):
         """更新処理"""
@@ -104,3 +132,13 @@ class TitleScene(BaseScene):
                 cursor_x = text_rect.left - cursor_w - scaled(8)
                 cursor_y = text_rect.centery - cursor_h // 2 + scaled(2)
                 self._draw_cursor(screen, cursor_x, cursor_y)
+
+        # ステータスメッセージ（セーブなし等）
+        if self._status_message:
+            msg_surf = self.font_medium.render(self._status_message, True, (255, 100, 100))
+            msg_rect = msg_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + len(self.menu_items) * scaled(40) + scaled(16)))
+            screen.blit(msg_surf, msg_rect)
+
+        # セーブスロットUIオーバーレイ
+        if self.save_slot_ui is not None:
+            self.save_slot_ui.draw(screen)

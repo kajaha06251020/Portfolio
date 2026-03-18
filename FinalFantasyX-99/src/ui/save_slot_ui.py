@@ -97,6 +97,7 @@ class SaveSlotUI:
         self.state: str = "HIDDEN"          # "HIDDEN" | "SLOT_SELECT" | "CONFIRM"
         self.selected_slot: int = 1         # 1-based
         self._save_type: str = "tile"
+        self._mode: str = "save"            # "save" | "load"
         self._callback: Optional[Callable[[Optional[int]], None]] = None
 
         # Fonts (lazy-initialised in _ensure_fonts)
@@ -124,7 +125,7 @@ class SaveSlotUI:
     # ------------------------------------------------------------------
 
     def show(self, save_type: str, callback: Callable[[Optional[int]], None]) -> None:
-        """UIを表示する。
+        """セーブモードでUIを表示する。
 
         Parameters
         ----------
@@ -134,6 +135,22 @@ class SaveSlotUI:
             セーブ完了時はスロット番号（1-based）、キャンセル時は ``None`` を受け取る。
         """
         self._save_type = save_type
+        self._mode = "save"
+        self._callback = callback
+        self.selected_slot = 1
+        self.state = "SLOT_SELECT"
+        self._ensure_fonts()
+        self._refresh_slots()
+
+    def show_load(self, callback: Callable[[Optional[int]], None]) -> None:
+        """ロードモードでUIを表示する。
+
+        Parameters
+        ----------
+        callback:
+            スロット選択確定時はスロット番号（1-based）、キャンセル時は ``None`` を受け取る。
+        """
+        self._mode = "load"
         self._callback = callback
         self.selected_slot = 1
         self.state = "SLOT_SELECT"
@@ -297,7 +314,8 @@ class SaveSlotUI:
         slot_h = scaled(_SLOT_HEIGHT)
 
         # ----- タイトル行 -----
-        title_surf = self._font_title.render("セーブデータを選択", True, _TEXT_COLOR)
+        _title_text = "ロードするデータを選択" if self._mode == "load" else "セーブデータを選択"
+        title_surf = self._font_title.render(_title_text, True, _TEXT_COLOR)
         title_x = panel.x + (panel.width - title_surf.get_width()) // 2
         title_y = panel.y + pad_y
         screen.blit(title_surf, (title_x, title_y))
@@ -425,7 +443,9 @@ class SaveSlotUI:
 
         # メッセージ
         slot_data = self._slots[self.selected_slot - 1] if (self.selected_slot - 1) < len(self._slots) else None
-        if slot_data is not None:
+        if self._mode == "load":
+            msg = f"スロット{self.selected_slot}のデータをロードしますか？"
+        elif slot_data is not None:
             msg = f"スロット{self.selected_slot}に上書きしますか？"
         else:
             msg = f"スロット{self.selected_slot}にセーブしますか？"

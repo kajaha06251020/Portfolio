@@ -28,7 +28,7 @@ class MenuScene(BaseScene):
         self.small_font = None
         self.state = "main"
         self.selected_index = 0
-        self.main_items = ["パーティ", "インベントリ", "装備変更", "クエスト", "セーブ（未実装）", "タイトルへ", "もどる"]
+        self.main_items = ["パーティ", "インベントリ", "装備変更", "クエスト", "セーブ", "タイトルへ", "もどる"]
         self.item_name_cache = None
         self.item_data_cache = None
         self.selected_actor_index = 0
@@ -58,6 +58,14 @@ class MenuScene(BaseScene):
             self.game.character_data.ensure_integrity()
 
     def handle_events(self, events: list):
+        # Save slot UI handles its own input when active
+        map_scene = self.game.scenes.get("map")
+        save_slot_ui = getattr(map_scene, "save_slot_ui", None) if map_scene else None
+        if save_slot_ui is not None and save_slot_ui.is_active:
+            for event in events:
+                save_slot_ui.handle_event(event)
+            return
+
         # Quest log overlay handles its own input when active
         if self.state == "quest_log":
             quest_log = getattr(self.game, "quest_log_ui", None)
@@ -306,11 +314,27 @@ class MenuScene(BaseScene):
             else:
                 self.info_message = "クエストシステムは未初期化です"
         elif index == 4:
-            self.info_message = "セーブ機能は未実装です"
+            map_scene = self.game.scenes.get("map")
+            save_slot_ui = getattr(map_scene, "save_slot_ui", None) if map_scene else None
+            if save_slot_ui is None:
+                self.info_message = "セーブUIが初期化されていません"
+            else:
+                save_slot_ui.show("menu", self._on_menu_save_done)
         elif index == 5:
             self.game.change_scene("title")
         elif index == 6:
             self.game.change_scene("map")
+
+    def _on_menu_save_done(self, slot):
+        """セーブスロット選択コールバック"""
+        if slot is None:
+            self.info_message = "キャンセルしました"
+            return
+        save_manager = getattr(self.game, "save_manager", None)
+        if save_manager and save_manager.save(slot, "menu"):
+            self.info_message = f"スロット{slot}にセーブしました"
+        else:
+            self.info_message = "セーブに失敗しました"
 
     def _slot_labels(self):
         return {
@@ -807,6 +831,12 @@ class MenuScene(BaseScene):
         if self.info_message:
             info = self.small_font.render(self.info_message, True, WHITE)
             screen.blit(info, (info_content.x, info_content.y))
+
+        # セーブスロットUIオーバーレイ
+        map_scene = self.game.scenes.get("map")
+        save_slot_ui = getattr(map_scene, "save_slot_ui", None) if map_scene else None
+        if save_slot_ui is not None:
+            save_slot_ui.draw(screen)
 
     def _draw_party_summary(self, screen: pygame.Surface, content_rect: pygame.Rect):
         party = getattr(self.game, "party", [])
