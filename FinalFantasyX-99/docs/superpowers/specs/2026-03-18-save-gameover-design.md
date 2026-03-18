@@ -143,6 +143,8 @@ class SaveManager:
 
 ```python
 def apply_game_over_penalty(self):
+    # game.party は game.character_data.get_party() の _party リストへの参照。
+    # dict をインプレース変更するため replace_party() は呼ばない。
     party = self.game.party
     if party:
         party[0]["hp"] = party[0]["max_hp"]
@@ -245,27 +247,27 @@ save_manager.has_any_save() == True
 save_manager.load_latest()
 save_manager.apply_game_over_penalty()
     ↓
+save_type == "npc_priest" なら _pending_priest_dialogue = True をセット
+    ↓
 game.change_scene("map")  ← map_scene.on_enter() が実行される
     ↓
-on_enter() 完了後、update() の最初のフレームで:
-  map_scene._pending_priest_dialogue フラグを確認
-    ↓
-True の場合:
-  dialogue_renderer.show_dialogue("神父",
-    "死んでしまうとはな...\nこれも神様の思し召しであろう。\nさぁ、行くがよい！！")
-  フラグをクリア
+update() 最初のフレームで _pending_priest_dialogue を確認
+    ↓ True の場合
+dialogue_renderer.show_dialogue("神父",
+    "死んでしまうとはな...これも神様の思し召しであろう。さぁ、行くがよい！！")
+フラグをクリア
+```
 
 ### 神父セリフのフラグ伝達方法
 
 ```python
-# GameOverScene → MapScene へ伝達
+# GameOverScene のキー入力処理内
 if save_manager.get_save_type() == "npc_priest":
     game.scenes["map"]._pending_priest_dialogue = True
 game.change_scene("map")
 ```
 
 `_pending_priest_dialogue` は `map_scene.__init__` で `False` に初期化し、`update()` の冒頭（フェード終了後）に確認してダイアログを発火する。`on_enter()` ではなく `update()` で処理することで、TMXロード・BGM再生・フェードイン完了後にセリフが表示される。
-```
 
 ### セーブデータがない場合
 
@@ -302,7 +304,7 @@ self.playtime_seconds += dt
 | `src/ui/save_slot_ui.py` | 新規 | スロット選択UI（セーブ時のみ） |
 | `saves/` | 新規 | セーブファイル置き場（.gitignore に追加） |
 | `src/game.py` | 変更 | SaveManager初期化・playtime_seconds追加・game_over登録 |
-| `src/scenes/battle_scene.py` | 変更 | 全滅時に game_over シーンへ遷移 |
+| `src/scenes/battle_scene.py` | 変更 | 全滅時に game_over シーンへ遷移。**現在 `defeat` 状態でのキー入力時に `game.change_scene("map")` と書かれている箇所を `game.change_scene("game_over")` に変更する必要がある。** |
 | `src/scenes/map_scene.py` | 変更 | セーブポイントタイル/オブジェクト判定・神父セリフ処理 |
 | `src/scripting/api.py` | 変更 | `event.open_save(save_type)` Lua API追加 |
 
