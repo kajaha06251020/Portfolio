@@ -483,6 +483,39 @@
       "target": null,
       "battle_use": false,
       "field_use": false
+    },
+    {
+      "item_id": "thieves_key",
+      "name": "とうぞくのカギ",
+      "description": "ちょっとした鍵なら開けられる。tier1の扉を開けられる。",
+      "price": 0,
+      "effect": "key_item",
+      "power": null,
+      "target": null,
+      "battle_use": false,
+      "field_use": false
+    },
+    {
+      "item_id": "magic_key",
+      "name": "まほうのカギ",
+      "description": "魔法の力で鍵を開ける。tier1〜2の扉を開けられる。",
+      "price": 0,
+      "effect": "key_item",
+      "power": null,
+      "target": null,
+      "battle_use": false,
+      "field_use": false
+    },
+    {
+      "item_id": "final_key",
+      "name": "さいごのカギ",
+      "description": "どんな扉でも開けられる伝説の鍵。",
+      "price": 0,
+      "effect": "key_item",
+      "power": null,
+      "target": null,
+      "battle_use": false,
+      "field_use": false
     }
   ]
 }
