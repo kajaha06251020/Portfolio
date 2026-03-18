@@ -85,6 +85,35 @@
       "special_abilities": [],
       "required_level": 5,
       "required_job": null
+    },
+    {
+      "item_id": "boomerang_iron",
+      "name": "てつのブーメラン",
+      "description": "鉄製のブーメラン。全ての敵に同時攻撃できる。",
+      "price": 480,
+      "stat_bonuses": {
+        "attack": 12
+      },
+      "hit_rate": 100,
+      "hits_all_enemies": true,
+      "special_abilities": [],
+      "required_level": 5,
+      "required_job": null
+    },
+    {
+      "item_id": "sword_cursed",
+      "name": "のろいのつるぎ",
+      "description": "呪われた剣。外すことができない。",
+      "price": 0,
+      "stat_bonuses": {
+        "attack": 30,
+        "magic": -5
+      },
+      "hit_rate": 98,
+      "special_abilities": [],
+      "cursed": true,
+      "required_level": 1,
+      "required_job": null
     }
   ],
   "armor": [
@@ -516,6 +545,16 @@
       "target": null,
       "battle_use": false,
       "field_use": false
+    },
+    {
+      "item_id": "chimaera_wing",
+      "name": "キメラのつばさ",
+      "description": "使うと最後に訪れた町へ瞬時に戻れる。",
+      "price": 25,
+      "effect": "rura",
+      "target": "party",
+      "field_use": true,
+      "battle_use": false
     }
   ]
 }
