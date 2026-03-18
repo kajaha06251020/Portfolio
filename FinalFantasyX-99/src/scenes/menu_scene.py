@@ -168,6 +168,8 @@ class MenuScene(BaseScene):
             slot_labels = self._slot_labels()
             if not party:
                 return ["スロットなし"]
+            if self.selected_actor_index >= len(party):
+                return ["スロットなし"]
             actor = party[self.selected_actor_index]
             options = []
             for slot in self.equipment_slots:
