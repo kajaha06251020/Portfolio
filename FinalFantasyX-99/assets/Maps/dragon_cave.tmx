@@ -1,29 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="16" height="12" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="2">
- <tileset firstgid="1" source="DF_OverWorld_TileSet.tsx"/>
- <layer id="1" name="Ground" width="16" height="12">
-  <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+<map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="16" height="12" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="10">
+  <tileset firstgid="1" source="DF_OverWorld_TileSet.tsx" />
+  <layer id="1" name="Ground" width="16" height="12">
+    <data encoding="csv">
+2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,8,8,8,2,2,2,2,2,2,2,
+2,8,8,8,8,8,8,8,8,8,8,8,8,8,2,2,
+2,8,2,2,2,2,8,8,8,2,2,2,2,8,2,2,
+2,8,2,2,2,2,8,8,8,2,2,2,2,8,2,2,
+2,8,8,8,8,8,8,8,8,8,8,8,8,8,2,2,
+2,2,2,2,8,2,2,8,8,2,2,2,2,2,2,2,
+2,2,2,2,8,8,8,8,8,8,8,2,2,2,2,2,
+2,2,2,2,8,2,2,2,2,2,8,2,2,2,2,2,
+2,2,2,2,8,8,8,8,8,8,8,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
 </data>
- </layer>
- <objectgroup id="2" name="Warps">
-  <object id="1" name="Warp" x="120" y="88" width="16" height="16">
-   <properties>
-    <property name="dest_map" value="DQ_OverWorld"/>
-    <property name="dest_x" type="int" value="8"/>
-    <property name="dest_y" type="int" value="6"/>
-   </properties>
-  </object>
- </objectgroup>
+  </layer>
+  <objectgroup id="2" name="Warps">
+    <object id="1" name="Warp" x="112" y="80" width="16" height="16">
+      <properties>
+        <property name="dest_map" value="DQ_OverWorld" />
+        <property name="dest_x" value="8" type="int" />
+        <property name="dest_y" value="6" type="int" />
+      </properties>
+    </object>
+  </objectgroup>
+  <objectgroup id="3" name="Objects">
+    <object id="2" name="SavePoint" type="save_point" x="64" y="144" width="16" height="16" />
+    <object id="3" name="Chest" type="chest" x="160" y="144" width="16" height="16">
+      <properties>
+        <property name="chest_id" value="cave_chest_01" />
+        <property name="item" value="potion_high" />
+        <property name="quantity" value="2" type="int" />
+      </properties>
+    </object>
+    <object id="4" name="Chest2" type="chest" x="16" y="48" width="16" height="16">
+      <properties>
+        <property name="chest_id" value="cave_chest_02" />
+        <property name="item" value="ether" />
+        <property name="quantity" value="3" type="int" />
+      </properties>
+    </object>
+  </objectgroup>
 </map>
