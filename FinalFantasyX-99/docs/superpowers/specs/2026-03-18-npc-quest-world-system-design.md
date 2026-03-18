@@ -57,8 +57,11 @@ Python (ゲームエンジン)
   │     ├── world.get_state(key)          -- ドットパスで状態取得（例: "depth.distortion"）
   │     ├── world.set_state(key, value)   -- ドットパスで状態設定
   │     │
-  │     ├── party.has_member(name)        -- パーティにキャラが居るか
+  │     ├── party.has_member(name)        -- パーティにキャラが居るか（不在時は false）
   │     ├── party.get_level(name)         -- キャラレベル取得（不在時は nil）
+  │     ├── party.add_gold(amount)        -- ゴールド加算
+  │     ├── party.add_item(item_id, count) -- アイテム付与（上限99/種）
+  │     ├── party.remove_item(item_id, count) -- アイテム消費
   │     │
   │     ├── flag.get(name)                -- フラグ取得
   │     ├── flag.set(name, value)         -- フラグ設定
@@ -81,6 +84,8 @@ Python (ゲームエンジン)
 - **コンテキスト依存:** `quest.complete()`, `quest.get_stage()`, `quest.set_stage()`, `quest.set_objective()` — 引数なし。エンジンが `on_accept()` や `on_stage_event()` を呼び出す際に暗黙的に設定する「現在のクエスト」に対して操作する
 
 コンテキスト外（例: NPC対話スクリプト内）でコンテキスト依存APIを呼んだ場合、エラーをログに記録し `nil` を返す。
+
+**状態の一貫性:** 明示的APIもコンテキスト依存APIも同一の正規クエスト状態ストアを読み書きする。`quest.update("Q1", "next_stage")` を呼んだ後、同じクエストのコンテキスト内で `quest.get_stage()` を呼べば `"next_stage"` が返る。逆も同様。
 
 ### 2.4 NPCスクリプト ライフサイクルコールバック
 
@@ -254,7 +259,20 @@ end
 }
 ```
 
-### 4.2 クエスト状態遷移
+### 4.2 クエスト開放条件の評価
+
+クエストが `inactive` から `available` に遷移する条件は2段階で評価される:
+
+1. **`prerequisites`（JSON宣言式）:** エンジンがLuaを呼ばずに評価する高速フィルター。フラグチェック (`flag:name`)、世界状態チェック (`world:key>=value`) 等の単純条件のみ対応
+2. **`on_check_available()`（Luaスクリプト）:** `prerequisites` を通過した場合のみ呼び出される。複雑な条件（複数状態の組み合わせ等）を記述できる。省略時は `prerequisites` のみで判定
+
+クエストは**両方を満たした場合のみ** `available` になる。`prerequisites` はLuaを呼ばない分高速なため、頻繁に評価される開放条件チェックの負荷を軽減する。
+
+`prerequisites` で表現可能な条件を `on_check_available()` 内で重複記述する必要はない。例えば `sub_castle_01` の場合:
+- JSON: `"prerequisites": ["flag:met_alma"]` — 高速フィルター
+- Lua: `on_check_available()` は `world.get_state("depth.distortion") >= 3` のみチェック
+
+### 4.3 クエスト状態遷移
 
 ```
 inactive → available → active → (stages...) → completed
@@ -276,9 +294,9 @@ inactive → available → active → (stages...) → completed
 ```lua
 -- scripts/quest/sub_castle_01.lua
 
+-- prerequisites で flag:met_alma は既にチェック済みのため、ここでは追加条件のみ
 function on_check_available()
-  return flag.get("met_alma")
-    and world.get_state("depth.distortion") >= 3
+  return world.get_state("depth.distortion") >= 3
 end
 
 function on_accept()
@@ -327,7 +345,24 @@ end
 | マーカー | ミニマップ上にクエスト目標地点を表示（設定可能） |
 | 上限 | 同時進行サブクエスト最大10件 |
 
-### 4.5 三層世界との連動
+### 4.5 ステージイベントのディスパッチ
+
+`on_stage_event(trigger)` はエンジンが自動的に呼び出す。発火の流れ:
+
+1. 任意のLuaスクリプト（NPC対話、イベント等）が `event.trigger("talk_alma")` を呼ぶ
+2. エンジンは `active` 状態のすべてのクエストスクリプトに対して `on_stage_event("talk_alma")` を呼び出す
+3. 各クエストは自身のステージに応じてトリガーを処理するか無視する
+
+**典型的なトリガー発火パターン:**
+
+| 発火元 | トリガー例 | 説明 |
+|--------|-----------|------|
+| NPCスクリプト `on_talk()` | `event.trigger("talk_alma")` | NPC対話時に発火 |
+| マップイベント | `event.trigger("depth_crystal_found")` | 特定タイルに到達した時 |
+| バトル後 | `event.trigger("boss_defeated_ch1")` | 特定の敵を倒した時 |
+| ルールエンジン | `event.trigger("dream_collapse")` | 世界状態変化で発火 |
+
+### 4.6 三層世界との連動
 
 | 仕組み | 説明 |
 |--------|------|
@@ -376,6 +411,14 @@ end
 層間の影響をLuaルールとして定義する。
 
 **再帰防止:** `world.set_state()` がルールコールバック内から呼ばれた場合、変更はキューに蓄積される（deferred update）。現在のコールバックが完了した後にキュー内の変更を順次適用し、それぞれに対してルールを再評価する。最大再帰深度は **8** とし、超過時は変更を適用するがルール発火を停止してログに警告を出力する。
+
+**サポートされるイベントタイプとコールバック署名:**
+
+| event_type | コールバック引数 | 発火タイミング |
+|------------|----------------|---------------|
+| `"on_state_change"` | `(key: string, old_value: any, new_value: any)` | `world.set_state()` で値が変更された時 |
+| `"on_layer_enter"` | `(layer: string, previous_layer: string)` | プレイヤーが層間移動した時 |
+| `"on_quest_complete"` | `(quest_id: string)` | クエストが完了した時 |
 
 **ルールのライフサイクル:** ゲーム起動時に `scripts/common/world_rules.lua` をロード。ルールは `WorldStateManager` のインスタンスに紐づき、シーン遷移をまたいで永続する。ホットリロード時はルール登録を全クリアして再ロードする。
 
@@ -426,23 +469,26 @@ end)
 | 演出 | 層ごとに画面エフェクト（色調変化、BGM切替） |
 | 制限 | 一部クエスト中は移動不可（ロック制御はLuaから） |
 
-**裂け目データ:** TMXマップ内にオブジェクトレイヤー `rifts` として定義する。
+**裂け目データ:** 既存の `MapScene._extract_tmx_warps()` のTMXワープ機構を拡張して実装する。TMXオブジェクトレイヤーの既存ワープオブジェクトに `target_layer` プロパティを追加することで、通常のマップ遷移と層間移動を同一パイプラインで処理する。
 
-```json
-// maps.json 内のマップ定義に追加
-{
-  "rifts": [
-    {
-      "id": "rift_castle_01",
-      "x": 15, "y": 10,
-      "target_layer": "depth",
-      "target_map": "depth_ruins",
-      "target_x": 3, "target_y": 7,
-      "unlock_condition": "flag:depth_access_granted"
-    }
-  ]
-}
 ```
+TMXオブジェクトプロパティ（既存ワープに追加）:
+  target_layer: "depth"              -- 省略時は現在の層内ワープ
+  unlock_condition: "flag:depth_access_granted"  -- 省略時は常時開放
+
+例: castle_town.tmx の warps レイヤー内オブジェクト
+  name: "rift_castle_01"
+  type: "warp"
+  x: 240, y: 160 (ピクセル座標)
+  properties:
+    target_map: "depth_ruins"
+    target_x: 3
+    target_y: 7
+    target_layer: "depth"
+    unlock_condition: "flag:depth_access_granted"
+```
+
+`_extract_tmx_warps()` は `target_layer` の有無で通常ワープと裂け目を区別する。裂け目には層間遷移エフェクト（色調変化、BGM切替）を追加適用する。
 
 ### 5.5 NPC/クエストとの連携パターン
 
@@ -576,6 +622,8 @@ end)
 
 ## 8. 対話表示の `npc.say()` / `npc.choice()` 実行フロー
 
+### 8.1 基本実行フロー
+
 Luaスクリプトは同期的に `npc.say()` を呼ぶが、実際の表示はPygameの非同期描画ループで行う。
 
 ```
@@ -646,6 +694,10 @@ Lua: 次の npc.say() または npc.choice() へ進む
 
 ### 10.2 クエスト報酬配布
 
+**宣言的報酬（JSON `rewards` フィールド）:** `quest.complete()` 呼び出し時にエンジンが自動配布する。
+
 - EXP: 生存パーティメンバー全員に均等配布（既存の `apply_battle_rewards` と同じ方式）
 - ゴールド: パーティ共有の所持金に加算
 - アイテム: パーティ共有インベントリに追加。インベントリ上限（99個/種類）を超える場合は上限まで加算し、超過分を破棄して警告メッセージを表示
+
+**スクリプト報酬（分岐クエスト用）:** 選択肢によって報酬が異なるクエストでは、`quest.complete()` の前にLuaスクリプト内で `party.add_gold()` / `party.add_item()` を直接呼び出す。JSON `rewards` を空にするか、共通報酬のみ定義する。
