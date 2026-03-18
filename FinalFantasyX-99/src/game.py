@@ -35,6 +35,7 @@ class Game:
         self.running = True
         self.character_data = CharacterDataManager()
         self.gold = 500
+        self.last_town: dict | None = None  # キメラのつばさ用: {"map_id": ..., "x": ..., "y": ...}
         self.playtime_seconds: float = 0.0
         self.inventory = {
             "potion": 5,
@@ -43,6 +44,7 @@ class Game:
             "helmet_mythril": 1,
             "armor_white": 1,
             "ring_power": 1,
+            "chimaera_wing": 2,
         }
 
         # スクリプトエンジン・ワールドステート・クエスト管理

@@ -532,6 +532,11 @@ class MenuScene(BaseScene):
             self.info_message = f"{self._resolve_item_name(item_id)} はフィールドで使用できません"
             return
 
+        # party対象アイテムはキャラ選択不要
+        if item_data.get("target") == "party":
+            self._use_item_on_actor(item_id, 0)  # actor_index=0 は使用されない
+            return
+
         self.selected_item_id = item_id
         self.return_state_after_target = "inventory"
         self.state = "use_item_target"
@@ -726,6 +731,27 @@ class MenuScene(BaseScene):
                 self.info_message = f"{actor.get('name', '???')} が戦闘不能から回復"
             else:
                 self.info_message = f"{actor.get('name', '???')} には効果がありません"
+        elif effect == "rura":
+            last_town = getattr(self.game, "last_town", None)
+            if last_town is None:
+                self.info_message = "まだ町を訪れていません"
+                # アイテムを返却（消費済みを戻す）
+                self._add_inventory_item(item_id, 1)
+                return
+            map_scene = self.game.scenes.get("map")
+            if map_scene:
+                # pending_transition を使って正式なマップ遷移を起動（TMX再読み込み・NPC再生成を含む）
+                map_scene.pending_transition = {
+                    "kind": "map",
+                    "map_id": last_town["map_id"],
+                    "x": last_town["x"],
+                    "y": last_town["y"],
+                }
+                map_scene.fade_alpha = 0
+                map_scene.fade_state = "out"
+            self.info_message = f"キメラのつばさで {last_town['map_id']} へ戻った！"
+            self.game.change_scene("map")
+            return
         else:
             self.info_message = f"{self._resolve_item_name(item_id)} を使用しました"
 

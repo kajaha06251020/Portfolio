@@ -655,6 +655,14 @@ class MapScene(BaseScene):
         self.player_grid_pos[0] = int(next_x)
         self.player_grid_pos[1] = int(next_y)
 
+        # 町マップに入った時 last_town を記録
+        if ("town" in map_id.lower() or "castle_town" in map_id.lower()):
+            self.game.last_town = {
+                "map_id": map_id,
+                "x": int(next_x),
+                "y": int(next_y),
+            }
+
         self._load_tmx_map()
         if self.tmx_data:
             self.map_width_tiles = self.tmx_data.width
