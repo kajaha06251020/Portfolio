@@ -1,0 +1,25 @@
+{
+  "global": {
+    "chapter": 1,
+    "story_phase": "awakening"
+  },
+  "layers": {
+    "physical": {
+      "distortion": 0,
+      "healed_count": 0,
+      "corruption_zones": []
+    },
+    "depth": {
+      "distortion": 0,
+      "crystallization": 0,
+      "sealed_cores": []
+    },
+    "dream": {
+      "stability": 100,
+      "fragments_collected": 0,
+      "unlocked_areas": []
+    }
+  },
+  "flags": {},
+  "quest_states": {}
+}

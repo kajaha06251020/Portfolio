@@ -1,0 +1,253 @@
+{
+  "system_type": "FF5_ability_system",
+  "description": "FF5型アビリティシステム",
+  "abilities": [
+    {
+      "ability_id": "slash",
+      "name": "斬撃",
+      "type": "attack",
+      "description": "敵1体に通常攻撃",
+      "mp_cost": 0,
+      "power": [8, 12],
+      "accuracy": 100,
+      "target_type": "single_enemy",
+      "effect": "physical_damage"
+    },
+    {
+      "ability_id": "double_slash",
+      "name": "二重斬り",
+      "type": "attack",
+      "description": "敵1体に2回攻撃",
+      "mp_cost": 0,
+      "power": [6, 10],
+      "accuracy": 95,
+      "target_type": "single_enemy",
+      "hit_times": 2,
+      "effect": "physical_damage_multi"
+    },
+    {
+      "ability_id": "power_attack",
+      "name": "パワーアタック",
+      "type": "attack",
+      "description": "敵1体に威力の高い攻撃",
+      "mp_cost": 0,
+      "power": [12, 18],
+      "accuracy": 90,
+      "target_type": "single_enemy",
+      "effect": "physical_damage"
+    },
+    {
+      "ability_id": "critical_strike",
+      "name": "会心の一撃",
+      "type": "attack",
+      "description": "敵1体に会心率の高い攻撃",
+      "mp_cost": 0,
+      "power": [10, 14],
+      "accuracy": 85,
+      "critical_rate": 40,
+      "target_type": "single_enemy",
+      "effect": "physical_damage"
+    },
+    {
+      "ability_id": "iaidou",
+      "name": "居合道",
+      "type": "special",
+      "description": "敵1体に素早い斬撃。ダメージが大きい。",
+      "mp_cost": 0,
+      "power": [15, 22],
+      "accuracy": 85,
+      "target_type": "single_enemy",
+      "effect": "physical_damage"
+    },
+    {
+      "ability_id": "kick",
+      "name": "蹴り",
+      "type": "attack",
+      "description": "敵1体を蹴る",
+      "mp_cost": 0,
+      "power": [7, 11],
+      "accuracy": 95,
+      "target_type": "single_enemy",
+      "effect": "physical_damage"
+    },
+    {
+      "ability_id": "chikudan",
+      "name": "地砕拳",
+      "type": "attack",
+      "description": "敵全体に拳撃。地を揺らす。",
+      "mp_cost": 0,
+      "power": [8, 12],
+      "accuracy": 90,
+      "target_type": "all_enemies",
+      "effect": "physical_damage_aoe"
+    },
+    {
+      "ability_id": "four_hit_combo",
+      "name": "四連撃",
+      "type": "attack",
+      "description": "敵1体に4回連続攻撃",
+      "mp_cost": 0,
+      "power": [5, 8],
+      "accuracy": 85,
+      "target_type": "single_enemy",
+      "hit_times": 4,
+      "effect": "physical_damage_multi"
+    },
+    {
+      "ability_id": "jump",
+      "name": "ジャンプ",
+      "type": "special",
+      "description": "敵1体に大ダメージ。使用後2ターン選択不可。",
+      "mp_cost": 0,
+      "power": [18, 26],
+      "accuracy": 95,
+      "target_type": "single_enemy",
+      "effect": "powered_attack",
+      "cooldown": 2
+    },
+    {
+      "ability_id": "dragon_thrust",
+      "name": "竜槍撃",
+      "type": "special",
+      "description": "敵1体に竜の力で攻撃。装甲無視。",
+      "mp_cost": 0,
+      "power": [20, 28],
+      "accuracy": 90,
+      "target_type": "single_enemy",
+      "effect": "armor_ignore_damage"
+    },
+    {
+      "ability_id": "cure",
+      "name": "ケアル",
+      "type": "magic",
+      "description": "味方1体のHP回復",
+      "mp_cost": 8,
+      "power": [40, 55],
+      "accuracy": 100,
+      "target_type": "single_ally",
+      "effect": "heal"
+    },
+    {
+      "ability_id": "heal",
+      "name": "ヒール",
+      "type": "magic",
+      "description": "味方1体のHP大回復",
+      "mp_cost": 16,
+      "power": [80, 110],
+      "accuracy": 100,
+      "target_type": "single_ally",
+      "effect": "heal"
+    },
+    {
+      "ability_id": "full_life",
+      "name": "フルライフ",
+      "type": "magic",
+      "description": "味方1体のHP完全回復",
+      "mp_cost": 30,
+      "power": 999,
+      "accuracy": 100,
+      "target_type": "single_ally",
+      "effect": "full_heal"
+    },
+    {
+      "ability_id": "protect",
+      "name": "プロテス",
+      "type": "support",
+      "description": "味方1体の防御力を大幅に上昇",
+      "mp_cost": 10,
+      "duration": 5,
+      "target_type": "single_ally",
+      "effect": "increase_defense",
+      "power_multiplier": 1.5
+    },
+    {
+      "ability_id": "rapid_dance",
+      "name": "乱舞",
+      "type": "attack",
+      "description": "敵全体を素早く攻撃",
+      "mp_cost": 0,
+      "power": [7, 10],
+      "accuracy": 90,
+      "target_type": "all_enemies",
+      "hit_times": 1,
+      "effect": "physical_dance_aoe"
+    },
+    {
+      "ability_id": "evasion_dance",
+      "name": "身かわし",
+      "type": "support",
+      "description": "味方全体の回避率を上昇",
+      "mp_cost": 8,
+      "duration": 4,
+      "target_type": "all_allies",
+      "effect": "increase_evasion",
+      "evasion_bonus": 25
+    },
+    {
+      "ability_id": "summon_ifrit",
+      "name": "イフリート",
+      "type": "magic",
+      "description": "炎の召喚獣イフリートを降ろす",
+      "mp_cost": 25,
+      "power": [60, 80],
+      "accuracy": 95,
+      "target_type": "all_enemies",
+      "effect": "summon_fire"
+    },
+    {
+      "ability_id": "summon_shiva",
+      "name": "シヴァ",
+      "type": "magic",
+      "description": "氷の召喚獣シヴァを降ろす",
+      "mp_cost": 25,
+      "power": [60, 80],
+      "accuracy": 95,
+      "target_type": "all_enemies",
+      "effect": "summon_ice"
+    },
+    {
+      "ability_id": "shield_guard",
+      "name": "盾防",
+      "type": "support",
+      "description": "盾を構えて防御態勢。防御力1.5倍。",
+      "mp_cost": 0,
+      "duration": 1,
+      "target_type": "self",
+      "effect": "shield_stance",
+      "defense_multiplier": 1.5
+    },
+    {
+      "ability_id": "armor_technique",
+      "name": "甲冑術",
+      "type": "support",
+      "description": "装甲に秘められた力を引き出す",
+      "mp_cost": 5,
+      "duration": 3,
+      "target_type": "self",
+      "effect": "armor_mastery",
+      "defense_bonus": 30
+    },
+    {
+      "ability_id": "holy_blade",
+      "name": "聖剣撃",
+      "type": "special",
+      "description": "聖剣の力を込めた一撃",
+      "mp_cost": 12,
+      "power": [22, 30],
+      "accuracy": 95,
+      "target_type": "single_enemy",
+      "effect": "holy_damage"
+    },
+    {
+      "ability_id": "divine_protection",
+      "name": "神聖防壁",
+      "type": "support",
+      "description": "神聖な力で味方を守る",
+      "mp_cost": 15,
+      "duration": 4,
+      "target_type": "all_allies",
+      "effect": "holy_barrier",
+      "defense_multiplier": 1.3
+    }
+  ]
+}

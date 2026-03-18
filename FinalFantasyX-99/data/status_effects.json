@@ -1,0 +1,214 @@
+{
+  "system_type": "status_effects",
+  "description": "FF5型状態異常システム",
+  "status_effects": {
+    "poison": {
+      "name": "毒",
+      "description": "毒状態。毎ターンHP減少。",
+      "icon": "poison",
+      "severity": 2,
+      "resistance_type": "poison_resistance",
+      "can_stack": false,
+      "duration": -1,
+      "effect_type": "damage_per_turn",
+      "damage_rate": 0.05
+    },
+    "sleep": {
+      "name": "睡眠",
+      "description": "睡眠状態。行動選択不可。物理攻撃で解除",
+      "icon": "sleep",
+      "severity": 3,
+      "resistance_type": "sleep_resistance",
+      "can_stack": false,
+      "duration": 2,
+      "effect_type": "action_block",
+      "removable_by_damage": true
+    },
+    "paralysis": {
+      "name": "麻痺",
+      "description": "麻痺状態。行動速度大幅低下。",
+      "icon": "paralysis",
+      "severity": 2,
+      "resistance_type": "paralysis_resistance",
+      "can_stack": false,
+      "duration": 3,
+      "effect_type": "speed_reduction",
+      "speed_multiplier": 0.5
+    },
+    "blind": {
+      "name": "暗闇",
+      "description": "暗闇状態。物理魔法命中低下。",
+      "icon": "blind",
+      "severity": 1,
+      "resistance_type": "blind_resistance",
+      "can_stack": false,
+      "duration": -1,
+      "effect_type": "accuracy_reduction",
+      "accuracy_multiplier": 0.75
+    },
+    "confuse": {
+      "name": "混乱",
+      "description": "混乱状態。敵味方ランダム攻撃。",
+      "icon": "confuse",
+      "severity": 3,
+      "resistance_type": "confuse_resistance",
+      "can_stack": false,
+      "duration": 3,
+      "effect_type": "random_action",
+      "action_distribution": {
+        "enemy_attack": 50,
+        "ally_attack": 30,
+        "nothing": 20
+      }
+    },
+    "petrify": {
+      "name": "石化",
+      "description": "石化進行状態。段階的に石貨化。",
+      "icon": "petrify",
+      "severity": 4,
+      "resistance_type": "petrify_resistance",
+      "can_stack": true,
+      "duration": -1,
+      "effect_type": "gradual_petrify",
+      "stages": 3
+    },
+    "slow": {
+      "name": "スロウ",
+      "description": "減速状態。ATB進行速度低下。",
+      "icon": "slow",
+      "severity": 2,
+      "resistance_type": "slow_resistance",
+      "can_stack": false,
+      "duration": -1,
+      "effect_type": "speed_reduction",
+      "speed_multiplier": 0.5
+    },
+    "stop": {
+      "name": "ストップ",
+      "description": "停止状態。完全に行動不可。",
+      "icon": "stop",
+      "severity": 4,
+      "resistance_type": "stop_resistance",
+      "can_stack": false,
+      "duration": 2,
+      "effect_type": "action_block",
+      "complete_freeze": true
+    },
+    "haste": {
+      "name": "ヘイスト",
+      "description": "加速状態。ATB進行速度上昇。",
+      "icon": "haste",
+      "severity": 0,
+      "resistance_type": null,
+      "can_stack": false,
+      "duration": 5,
+      "effect_type": "speed_boost",
+      "speed_multiplier": 1.5,
+      "is_beneficial": true
+    },
+    "protect": {
+      "name": "プロテス",
+      "description": "防御強化。物理ダメージ軽減。",
+      "icon": "protect",
+      "severity": 0,
+      "resistance_type": null,
+      "can_stack": false,
+      "duration": 5,
+      "effect_type": "damage_reduction",
+      "damage_reduction_rate": 0.25,
+      "is_beneficial": true
+    }
+  },
+  "base_resistances": {
+    "Knight": {
+      "poison_resistance": 0.2,
+      "sleep_resistance": 0.1,
+      "paralysis_resistance": 0.3,
+      "blind_resistance": 0.15,
+      "confuse_resistance": 0.1,
+      "petrify_resistance": 0.0,
+      "slow_resistance": 0.15,
+      "stop_resistance": 0.1
+    },
+    "Samurai": {
+      "poison_resistance": 0.15,
+      "sleep_resistance": 0.2,
+      "paralysis_resistance": 0.25,
+      "blind_resistance": 0.2,
+      "confuse_resistance": 0.15,
+      "petrify_resistance": 0.05,
+      "slow_resistance": 0.1,
+      "stop_resistance": 0.05
+    },
+    "Dragoon": {
+      "poison_resistance": 0.1,
+      "sleep_resistance": 0.15,
+      "paralysis_resistance": 0.2,
+      "blind_resistance": 0.1,
+      "confuse_resistance": 0.1,
+      "petrify_resistance": 0.05,
+      "slow_resistance": 0.1,
+      "stop_resistance": 0.1
+    },
+    "WhiteMage": {
+      "poison_resistance": 0.3,
+      "sleep_resistance": 0.4,
+      "paralysis_resistance": 0.15,
+      "blind_resistance": 0.35,
+      "confuse_resistance": 0.3,
+      "petrify_resistance": 0.1,
+      "slow_resistance": 0.2,
+      "stop_resistance": 0.2
+    },
+    "Dancer": {
+      "poison_resistance": 0.25,
+      "sleep_resistance": 0.15,
+      "paralysis_resistance": 0.3,
+      "blind_resistance": 0.2,
+      "confuse_resistance": 0.2,
+      "petrify_resistance": 0.05,
+      "slow_resistance": 0.25,
+      "stop_resistance": 0.15
+    },
+    "Summoner": {
+      "poison_resistance": 0.2,
+      "sleep_resistance": 0.35,
+      "paralysis_resistance": 0.1,
+      "blind_resistance": 0.3,
+      "confuse_resistance": 0.25,
+      "petrify_resistance": 0.15,
+      "slow_resistance": 0.15,
+      "stop_resistance": 0.2
+    },
+    "Fighter": {
+      "poison_resistance": 0.1,
+      "sleep_resistance": 0.1,
+      "paralysis_resistance": 0.2,
+      "blind_resistance": 0.1,
+      "confuse_resistance": 0.1,
+      "petrify_resistance": 0.0,
+      "slow_resistance": 0.1,
+      "stop_resistance": 0.05
+    },
+    "Monk": {
+      "poison_resistance": 0.15,
+      "sleep_resistance": 0.2,
+      "paralysis_resistance": 0.25,
+      "blind_resistance": 0.15,
+      "confuse_resistance": 0.15,
+      "petrify_resistance": 0.05,
+      "slow_resistance": 0.15,
+      "stop_resistance": 0.1
+    },
+    "Paladin": {
+      "poison_resistance": 0.25,
+      "sleep_resistance": 0.15,
+      "paralysis_resistance": 0.3,
+      "blind_resistance": 0.2,
+      "confuse_resistance": 0.2,
+      "petrify_resistance": 0.1,
+      "slow_resistance": 0.2,
+      "stop_resistance": 0.15
+    }
+  }
+}

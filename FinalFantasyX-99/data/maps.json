@@ -1,0 +1,108 @@
+{
+  "maps": [
+    {
+      "map_id": "DQ_OverWorld",
+      "tmx": "DF_Overworld_TileMap.tmx",
+      "name": "Field",
+      "display_name": "Field - Overworld",
+      "difficulty_range": [1, 20],
+      "recommended_level": 1,
+      "width": 64,
+      "height": 64,
+      "background": "field_grass_light.png",
+      "music": "bgm_field_start",
+      "encounter_rate": 35,
+      "safe_zones": [
+        {
+          "zone_id": "field_center",
+          "x": 0,
+          "y": 0,
+          "width": 64,
+          "height": 64,
+          "description": "Field"
+        }
+      ],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": []
+    },
+    {
+      "map_id": "castle_town",
+      "tmx": "castle_town.tmx",
+      "name": "Town",
+      "display_name": "Town",
+      "difficulty_range": [1, 20],
+      "recommended_level": 1,
+      "width": 16,
+      "height": 12,
+      "background": "field_town.png",
+      "music": "bgm_town",
+      "encounter_rate": 0,
+      "safe_zones": [
+        {
+          "zone_id": "town_center",
+          "x": 0,
+          "y": 0,
+          "width": 16,
+          "height": 12,
+          "description": "Town"
+        }
+      ],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": []
+    },
+    {
+      "map_id": "castle",
+      "tmx": "Aliahan/Aliahan.tmx",
+      "name": "Castle",
+      "display_name": "Castle",
+      "difficulty_range": [1, 20],
+      "recommended_level": 1,
+      "width": 16,
+      "height": 12,
+      "background": "field_town.png",
+      "music": "bgm_castle",
+      "encounter_rate": 0,
+      "safe_zones": [
+        {
+          "zone_id": "castle_center",
+          "x": 0,
+          "y": 0,
+          "width": 16,
+          "height": 12,
+          "description": "Castle"
+        }
+      ],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": []
+    },
+    {
+      "map_id": "dragon_cave",
+      "tmx": "dragon_cave.tmx",
+      "name": "Dungeon",
+      "display_name": "Dungeon",
+      "difficulty_range": [1, 20],
+      "recommended_level": 1,
+      "width": 16,
+      "height": 12,
+      "background": "field_cave_dragon.png",
+      "music": "bgm_cave_dragon",
+      "encounter_rate": 50,
+      "safe_zones": [
+        {
+          "zone_id": "dungeon_center",
+          "x": 0,
+          "y": 0,
+          "width": 16,
+          "height": 12,
+          "description": "Dungeon"
+        }
+      ],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": []
+    }
+  ]
+}

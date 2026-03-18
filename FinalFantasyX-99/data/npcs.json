@@ -1,0 +1,35 @@
+{
+  "npc_001": {
+    "name": "老賢者アルマ",
+    "sprite": "npc_alma",
+    "layers": {
+      "physical": { "map": "castle_town", "x": 12, "y": 8 },
+      "depth": { "map": "depth_ruins", "x": 5, "y": 3, "script": "npc/alma_depth.lua" },
+      "dream": null
+    },
+    "script": "npc/alma.lua",
+    "movement": "fixed"
+  },
+  "npc_002": {
+    "name": "町の住人",
+    "sprite": "npc_villager",
+    "layers": {
+      "physical": { "map": "castle_town", "x": 6, "y": 10 },
+      "depth": null,
+      "dream": null
+    },
+    "script": "npc/villager_01.lua",
+    "movement": "random"
+  },
+  "npc_003": {
+    "name": "謎の旅人",
+    "sprite": "npc_traveler",
+    "layers": {
+      "physical": { "map": "DQ_OverWorld", "x": 10, "y": 8 },
+      "depth": { "map": "DQ_OverWorld", "x": 10, "y": 8 },
+      "dream": null
+    },
+    "script": "npc/traveler.lua",
+    "movement": "fixed"
+  }
+}
