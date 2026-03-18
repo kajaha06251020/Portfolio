@@ -655,14 +655,6 @@ class MapScene(BaseScene):
         self.player_grid_pos[0] = int(next_x)
         self.player_grid_pos[1] = int(next_y)
 
-        # 町マップに入った時 last_town を記録
-        if ("town" in map_id.lower() or "castle_town" in map_id.lower()):
-            self.game.last_town = {
-                "map_id": map_id,
-                "x": int(next_x),
-                "y": int(next_y),
-            }
-
         self._load_tmx_map()
         if self.tmx_data:
             self.map_width_tiles = self.tmx_data.width
@@ -673,6 +665,14 @@ class MapScene(BaseScene):
 
         self.player_grid_pos[0] = min(max(0, self.player_grid_pos[0]), max(0, self.map_width_tiles - 1))
         self.player_grid_pos[1] = min(max(0, self.player_grid_pos[1]), max(0, self.map_height_tiles - 1))
+
+        # 町マップに入った時 last_town を記録（クランプ後の座標を使用）
+        if ("town" in map_id.lower() or "castle_town" in map_id.lower()):
+            self.game.last_town = {
+                "map_id": map_id,
+                "x": self.player_grid_pos[0],
+                "y": self.player_grid_pos[1],
+            }
 
         self.player.set_grid_position(self.player_grid_pos[0], self.player_grid_pos[1])
         self.warp_block_tile = (self.current_map, self.player_grid_pos[0], self.player_grid_pos[1])

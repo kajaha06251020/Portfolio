@@ -534,6 +534,7 @@ class MenuScene(BaseScene):
 
         # party対象アイテムはキャラ選択不要
         if item_data.get("target") == "party":
+            self.return_state_after_target = "inventory"
             self._use_item_on_actor(item_id, 0)  # actor_index=0 は使用されない
             return
 
@@ -749,8 +750,8 @@ class MenuScene(BaseScene):
                 }
                 map_scene.fade_alpha = 0
                 map_scene.fade_state = "out"
-            self.info_message = f"キメラのつばさで {last_town['map_id']} へ戻った！"
-            self.game.change_scene("map")
+                self.info_message = f"キメラのつばさで {last_town['map_id']} へ戻った！"
+                self.game.change_scene("map")
             return
         else:
             self.info_message = f"{self._resolve_item_name(item_id)} を使用しました"
