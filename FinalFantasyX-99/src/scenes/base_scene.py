@@ -19,6 +19,10 @@ class BaseScene(ABC):
     def on_exit(self):
         """シーンから出る時に呼ばれる"""
         pass
+
+    def on_resume(self):
+        """push_sceneから戻った時に呼ばれる"""
+        pass
     
     @abstractmethod
     def handle_events(self, events: list):

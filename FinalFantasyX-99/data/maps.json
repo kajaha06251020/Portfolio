@@ -103,6 +103,76 @@
       "encounter_zones": [],
       "transitions": [],
       "npcs": []
+    },
+    {
+      "map_id": "castle_town_weapon",
+      "tmx": "castle_town_weapon.tmx",
+      "name": "Weapon Shop",
+      "display_name": "城下町 武器屋",
+      "width": 8,
+      "height": 6,
+      "encounter_rate": 0,
+      "music": "bgm_field_start",
+      "safe_zones": [],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": ["shopkeeper_weapon"]
+    },
+    {
+      "map_id": "castle_town_armor",
+      "tmx": "castle_town_armor.tmx",
+      "name": "Armor Shop",
+      "display_name": "城下町 防具屋",
+      "width": 8,
+      "height": 6,
+      "encounter_rate": 0,
+      "music": "bgm_field_start",
+      "safe_zones": [],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": ["shopkeeper_armor"]
+    },
+    {
+      "map_id": "castle_town_item",
+      "tmx": "castle_town_item.tmx",
+      "name": "Item Shop",
+      "display_name": "城下町 道具屋",
+      "width": 8,
+      "height": 6,
+      "encounter_rate": 0,
+      "music": "bgm_field_start",
+      "safe_zones": [],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": ["shopkeeper_item"]
+    },
+    {
+      "map_id": "castle_town_inn",
+      "tmx": "castle_town_inn.tmx",
+      "name": "Inn",
+      "display_name": "城下町 宿屋",
+      "width": 8,
+      "height": 6,
+      "encounter_rate": 0,
+      "music": "bgm_field_start",
+      "safe_zones": [],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": ["innkeeper"]
+    },
+    {
+      "map_id": "castle_town_magic",
+      "tmx": "castle_town_magic.tmx",
+      "name": "Magic Shop",
+      "display_name": "城下町 魔法屋",
+      "width": 8,
+      "height": 6,
+      "encounter_rate": 0,
+      "music": "bgm_field_start",
+      "safe_zones": [],
+      "encounter_zones": [],
+      "transitions": [],
+      "npcs": ["shopkeeper_magic"]
     }
   ]
 }

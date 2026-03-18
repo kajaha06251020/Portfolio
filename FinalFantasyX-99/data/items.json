@@ -428,6 +428,61 @@
       "target": "single_ally",
       "battle_use": true,
       "field_use": false
+    },
+    {
+      "item_id": "scroll_fire",
+      "name": "ファイアの書",
+      "description": "ファイアの魔法を習得する巻物。",
+      "price": 500,
+      "effect": "teach_ability",
+      "power": null,
+      "target": "single_ally",
+      "battle_use": false,
+      "field_use": true
+    },
+    {
+      "item_id": "scroll_ice",
+      "name": "ブリザドの書",
+      "description": "ブリザドの魔法を習得する巻物。",
+      "price": 500,
+      "effect": "teach_ability",
+      "power": null,
+      "target": "single_ally",
+      "battle_use": false,
+      "field_use": true
+    },
+    {
+      "item_id": "scroll_thunder",
+      "name": "サンダーの書",
+      "description": "サンダーの魔法を習得する巻物。",
+      "price": 500,
+      "effect": "teach_ability",
+      "power": null,
+      "target": "single_ally",
+      "battle_use": false,
+      "field_use": true
+    },
+    {
+      "item_id": "silver_key",
+      "name": "銀の鍵",
+      "description": "銀色に光る鍵。特定の宝箱を開けられる。",
+      "price": 0,
+      "effect": "key_item",
+      "power": null,
+      "target": null,
+      "battle_use": false,
+      "field_use": false
+    },
+    {
+      "item_id": "cave_key",
+      "name": "洞窟の鍵",
+      "description": "古びた洞窟の扉を開ける鍵。",
+      "price": 0,
+      "effect": "key_item",
+      "power": null,
+      "target": null,
+      "battle_use": false,
+      "field_use": false
     }
   ]
 }

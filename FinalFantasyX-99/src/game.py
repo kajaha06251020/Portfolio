@@ -15,6 +15,9 @@ from src.scripting.api import ScriptAPI
 from src.world.world_state_manager import WorldStateManager
 from src.quest.quest_manager import QuestManager
 from src.quest.quest_log_ui import QuestLogUI
+from src.scenes.shop_scene import ShopScene
+from src.world.treasure import TreasureManager
+from src.world.gimmick_manager import GimmickManager
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.character_data = CharacterDataManager()
-        self.gold = 0
+        self.gold = 500
         self.inventory = {
             "potion": 5,
             "ether": 3,
@@ -56,22 +59,31 @@ class Game:
         self.script_api.quest_manager = self.quest_manager
         self.quest_log_ui = QuestLogUI(self.quest_manager)
 
+        # 宝箱・ギミック管理
+        self.treasure_manager = TreasureManager(self.world_state_manager, self)
+        self.gimmick_manager = GimmickManager(self.world_state_manager, self)
+
         # シーン管理
         self.scenes = {
             "title": TitleScene(self),
             "map": MapScene(self),
             "battle": BattleScene(self),
             "menu": MenuScene(self),
+            "shop": ShopScene(self),
         }
         self.current_scene = "title"
+        self._scene_stack: list[str] = []
 
         # 共通Luaスクリプト（ワールドルール等）を読み込み
         self.script_api.load_common_scripts()
 
-        # MapSceneにスクリプトエンジンを接続
+        # MapSceneにスクリプトエンジン・宝箱・ギミックを接続
         map_scene = self.scenes.get("map")
         if map_scene and hasattr(map_scene, "init_npc_system"):
             map_scene.init_npc_system(self.script_engine)
+        if map_scene:
+            map_scene.treasure_manager = self.treasure_manager
+            map_scene.gimmick_manager = self.gimmick_manager
 
     @property
     def party(self):
@@ -81,9 +93,23 @@ class Game:
     def party(self, value):
         self.character_data.replace_party(value)
     
-    def change_scene(self, scene_name: str):
-        """シーンを切り替える"""
+    def push_scene(self, scene_name: str):
+        """現在のシーンをスタックに退避し、新しいシーンに遷移"""
         if scene_name in self.scenes:
+            self._scene_stack.append(self.current_scene)
+            self.current_scene = scene_name
+            self.scenes[scene_name].on_enter()
+
+    def pop_scene(self):
+        """スタックから前のシーンを復帰"""
+        if self._scene_stack:
+            self.current_scene = self._scene_stack.pop()
+            self.scenes[self.current_scene].on_resume()
+
+    def change_scene(self, scene_name: str):
+        """シーンを切り替える（スタッククリア）"""
+        if scene_name in self.scenes:
+            self._scene_stack.clear()
             self.current_scene = scene_name
             self.scenes[scene_name].on_enter()
     

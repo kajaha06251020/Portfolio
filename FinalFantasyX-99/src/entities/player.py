@@ -93,7 +93,7 @@ class Player:
             return False
         if next_y < 0 or next_y >= max_rows:
             return False
-        if blocked_checker and blocked_checker(next_x, next_y):
+        if blocked_checker and blocked_checker(next_x, next_y, self.direction):
             return False
 
         self.target_grid_x = next_x

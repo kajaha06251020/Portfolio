@@ -1,0 +1,31 @@
+{
+  "castle_town_weapon": {
+    "name": "城下町 武器屋",
+    "type": "weapon",
+    "items": ["sword_steel", "sword_mythril", "axe_battle", "staff_magic"],
+    "sell_rate": 0.5
+  },
+  "castle_town_armor": {
+    "name": "城下町 防具屋",
+    "type": "armor",
+    "items": ["helmet_steel", "helmet_mythril", "armor_leather", "armor_plate"],
+    "sell_rate": 0.5
+  },
+  "castle_town_item": {
+    "name": "城下町 道具屋",
+    "type": "item",
+    "items": ["potion", "potion_high", "antidote", "ether", "eye_drops", "full_life"],
+    "sell_rate": 0.5
+  },
+  "castle_town_magic": {
+    "name": "城下町 魔法屋",
+    "type": "special",
+    "items": ["scroll_fire", "scroll_ice", "scroll_thunder"],
+    "sell_rate": 0.25
+  },
+  "castle_town_inn": {
+    "type": "inn",
+    "name": "城下町 宿屋",
+    "price": 50
+  }
+}

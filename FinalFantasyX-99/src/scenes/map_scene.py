@@ -71,6 +71,17 @@ class MapScene(BaseScene):
         self.dialogue_npc_id = None    # 対話中のNPC ID
         self._current_layer = "physical"  # ワールドレイヤー
         self._npc_label_font = get_font(scaled(12))
+
+        # 宝箱・ギミック管理（game.py側で初期化後に設定される）
+        self.treasure_manager = None
+        self.gimmick_manager = None
+
+        # スクリプトフェード/ウェイト（対話コルーチン用）
+        self._script_fade_state = None   # "out" / "in" / None
+        self._script_fade_alpha = 0
+        self._script_wait_timer = 0.0
+        self._script_fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self._script_fade_surface.fill((0, 0, 0))
         
     def _load_maps(self):
         """マップデータを読み込み"""
@@ -96,6 +107,13 @@ class MapScene(BaseScene):
     def init_npc_system(self, script_engine):
         """ScriptEngine接続後にNPCManagerを初期化"""
         self.npc_manager = NPCManager(script_engine)
+
+    def _load_chests_and_gimmicks(self):
+        """現在のマップの宝箱・ギミックをTMXから読み込み"""
+        if self.treasure_manager is not None and self.tmx_data is not None:
+            self.treasure_manager.load_chests(self.current_map, self.tmx_data)
+        if self.gimmick_manager is not None and self.tmx_data is not None:
+            self.gimmick_manager.load_gimmicks(self.current_map, self.tmx_data)
 
     def _load_npcs_for_current_map(self):
         """現在のマップ/レイヤーのNPCを取得"""
@@ -131,6 +149,9 @@ class MapScene(BaseScene):
         # NPCを読み込み
         self._load_npcs_for_current_map()
 
+        # 宝箱・ギミックを読み込み
+        self._load_chests_and_gimmicks()
+
         # BGMを再生
         self._play_map_bgm()
     
@@ -150,9 +171,13 @@ class MapScene(BaseScene):
                             self._advance_dialogue()
                     continue
 
-                # NPC会話キー (Enter / Space / Z)
+                # アクションキー (Enter / Space / Z): NPC会話 → 宝箱 → ギミック
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
                     if self._try_start_npc_dialogue():
+                        continue
+                    if self._try_interact_chest():
+                        continue
+                    if self._try_interact_gimmick():
                         continue
 
                 if event.key == pygame.K_ESCAPE:
@@ -166,10 +191,20 @@ class MapScene(BaseScene):
                         self.audio_manager.unpause_bgm()
                         print("BGM resumed")
     
+    def on_resume(self):
+        """push_sceneから戻った時の処理（ショップ終了後等）"""
+        if self.dialogue_coroutine is not None:
+            self._advance_dialogue()
+
     def update(self):
         """更新処理"""
         if self.fade_state is not None:
             self._update_fade_transition()
+            return
+
+        # スクリプトフェード/ウェイト処理
+        if self._script_fade_state is not None or self._script_wait_timer > 0:
+            self._update_script_effects()
             return
 
         # ダイアログ中はプレイヤー移動とエンカウントをブロック
@@ -204,6 +239,9 @@ class MapScene(BaseScene):
         if step_completed:
             if self.transition_cooldown > 0:
                 self.transition_cooldown -= 1
+
+            # ギミック判定（落とし穴等）
+            self._check_gimmick_step()
 
             if self._check_tmx_warp():
                 return
@@ -359,6 +397,35 @@ class MapScene(BaseScene):
         tokens = ["town", "castle", "dungeon", "cave", "城", "町", "洞窟"]
         return any(token in map_key or token in map_name for token in tokens)
 
+    def _update_script_effects(self):
+        """スクリプトフェード/ウェイト処理（宿屋のevent.fade_out等）"""
+        fade_speed = 15
+
+        if self._script_fade_state == "out":
+            self._script_fade_alpha = min(255, self._script_fade_alpha + fade_speed)
+            if self._script_fade_alpha >= 255:
+                self._script_fade_state = None
+                # フェードアウト完了 → コルーチンresume
+                self._advance_dialogue()
+            return
+
+        if self._script_fade_state == "in":
+            self._script_fade_alpha = max(0, self._script_fade_alpha - fade_speed)
+            if self._script_fade_alpha <= 0:
+                self._script_fade_alpha = 0
+                self._script_fade_state = None
+                # フェードイン完了 → コルーチンresume
+                self._advance_dialogue()
+            return
+
+        if self._script_wait_timer > 0:
+            self._script_wait_timer -= 1.0 / 60.0
+            if self._script_wait_timer <= 0:
+                self._script_wait_timer = 0.0
+                # ウェイト完了 → コルーチンresume
+                self._advance_dialogue()
+            return
+
     def _update_fade_transition(self):
         """フェードの進行を更新"""
         if self.fade_state == "out":
@@ -432,6 +499,7 @@ class MapScene(BaseScene):
         self._update_camera()
         self._play_map_bgm()
         self._load_npcs_for_current_map()
+        self._load_chests_and_gimmicks()
         self.encounter_steps = 0
         self.transition_cooldown = 8
 
@@ -516,6 +584,23 @@ class MapScene(BaseScene):
                 # Lua tableをPythonリストに変換
                 options = self._lua_table_to_list(options_raw)
                 self.dialogue_renderer.show_choice(options)
+            elif cmd == "shop" and len(yielded) >= 2:
+                # ショップ遷移: コルーチンを保持したままShopSceneへ
+                shop_id = str(yielded[1])
+                shop_scene = self.game.scenes.get("shop")
+                if shop_scene:
+                    shop_scene.open(shop_id)
+                    self.game.push_scene("shop")
+                else:
+                    logger.warning("ShopScene not registered")
+            elif cmd == "fade_out":
+                self._script_fade_state = "out"
+                self._script_fade_alpha = 0
+            elif cmd == "fade_in":
+                self._script_fade_state = "in"
+                self._script_fade_alpha = 255
+            elif cmd == "wait" and len(yielded) >= 2:
+                self._script_wait_timer = float(yielded[1])
             else:
                 logger.warning("Unknown dialogue command: %s", cmd)
                 self.dialogue_coroutine = None
@@ -816,11 +901,21 @@ class MapScene(BaseScene):
 
                 self.tmx_surface.blit(scaled_cache[key], (x * tile_width, y * tile_height))
 
-    def _is_blocked_tile(self, tile_x: int, tile_y: int) -> bool:
-        """指定タイルが通行不可か判定（NPCタイルも含む）"""
+    def _is_blocked_tile(self, tile_x: int, tile_y: int, direction: str = None) -> bool:
+        """指定タイルが通行不可か判定（NPCタイル・宝箱・ギミックも含む）"""
         # NPCがいるタイルはブロック
         for npc in self.current_npcs:
             if npc.grid_x == tile_x and npc.grid_y == tile_y:
+                return True
+
+        # 宝箱チェック
+        if hasattr(self, 'treasure_manager') and self.treasure_manager is not None:
+            if self.treasure_manager.is_chest_at(tile_x, tile_y):
+                return True
+
+        # ギミックチェック（方向対応: 一方通行ドア等）
+        if hasattr(self, 'gimmick_manager') and self.gimmick_manager is not None:
+            if self.gimmick_manager.is_tile_blocked(tile_x, tile_y, direction):
                 return True
 
         if self.tmx_data is None:
@@ -915,6 +1010,114 @@ class MapScene(BaseScene):
             screen.blit(bg_surf, bg_rect.topleft)
             screen.blit(label, (label_x, label_y))
 
+    def _draw_chests(self, screen: pygame.Surface, offset_x: int = 0, offset_y: int = 0):
+        """宝箱をマップ上に描画"""
+        if self.treasure_manager is None:
+            return
+
+        tile_w = TILE_SIZE
+        tile_h = TILE_SIZE
+        if self.tmx_data:
+            tile_w = self.tmx_data.tilewidth * self.tmx_tile_scale
+            tile_h = self.tmx_data.tileheight * self.tmx_tile_scale
+
+        margin = scaled(6)
+        for chest in self.treasure_manager.get_chests():
+            draw_x = int(chest.grid_x * tile_w + offset_x) + margin
+            draw_y = int(chest.grid_y * tile_h + offset_y) + margin
+            w = tile_w - margin * 2
+            h = tile_h - margin * 2
+
+            opened = self.treasure_manager.is_opened(chest.chest_id)
+            if opened:
+                # 開封済み: 暗い茶色
+                pygame.draw.rect(screen, (80, 50, 20), (draw_x, draw_y, w, h))
+                pygame.draw.rect(screen, (60, 40, 15), (draw_x, draw_y, w, h), 2)
+            else:
+                # 未開封: 茶色 + 黄色の帯
+                pygame.draw.rect(screen, (139, 90, 43), (draw_x, draw_y, w, h))
+                band_h = max(4, h // 4)
+                pygame.draw.rect(screen, (220, 180, 50), (draw_x, draw_y + h // 2 - band_h // 2, w, band_h))
+                pygame.draw.rect(screen, (100, 65, 30), (draw_x, draw_y, w, h), 2)
+
+    def _try_interact_chest(self) -> bool:
+        """プレイヤーの前の宝箱と対話を試みる"""
+        if self.treasure_manager is None:
+            return False
+
+        # プレイヤーの向いている方向の1マス先
+        dx, dy = 0, 0
+        if self.player.direction == "up": dy = -1
+        elif self.player.direction == "down": dy = 1
+        elif self.player.direction == "left": dx = -1
+        elif self.player.direction == "right": dx = 1
+
+        target_x = self.player.grid_x + dx
+        target_y = self.player.grid_y + dy
+
+        chest = self.treasure_manager.is_chest_at(target_x, target_y)
+        if chest is None:
+            return False
+
+        result = self.treasure_manager.interact(chest.chest_id)
+
+        if result.status == "mimic":
+            # ミミック: メッセージ表示後バトル遷移
+            self.dialogue_renderer.show_dialogue("", result.message)
+            # TODO: バトル遷移（enemy_groupを使ってエンカウント）
+            return True
+
+        if result.message:
+            self.dialogue_renderer.show_dialogue("", result.message)
+
+        return True
+
+    def _check_gimmick_step(self):
+        """移動完了時にギミック判定（落とし穴等）"""
+        if self.gimmick_manager is None:
+            return
+
+        event = self.gimmick_manager.on_player_step(self.player.grid_x, self.player.grid_y)
+        if event is None:
+            return
+
+        if event.type == "pitfall":
+            # 落とし穴: フェード遷移で下の階へ
+            dest = event.data
+            self.pending_transition = {
+                "kind": "map",
+                "map_id": dest.get("dest_map", ""),
+                "x": dest.get("dest_x", 0),
+                "y": dest.get("dest_y", 0),
+            }
+            self.fade_state = "out"
+            self.fade_alpha = 0
+        elif event.type == "switch_toggle":
+            if event.message:
+                self.dialogue_renderer.show_dialogue("", event.message)
+
+    def _try_interact_gimmick(self) -> bool:
+        """プレイヤーの前のギミックと対話を試みる"""
+        if self.gimmick_manager is None:
+            return False
+
+        dx, dy = 0, 0
+        if self.player.direction == "up": dy = -1
+        elif self.player.direction == "down": dy = 1
+        elif self.player.direction == "left": dx = -1
+        elif self.player.direction == "right": dx = 1
+
+        target_x = self.player.grid_x + dx
+        target_y = self.player.grid_y + dy
+
+        event = self.gimmick_manager.interact(target_x, target_y, self.player.direction)
+        if event is None:
+            return False
+
+        if event.message:
+            self.dialogue_renderer.show_dialogue("", event.message)
+        return True
+
     def draw(self, screen: pygame.Surface):
         """描画処理"""
         # TMXマップを描画
@@ -969,8 +1172,16 @@ class MapScene(BaseScene):
         # ダイアログUIの描画（最前面）
         self.dialogue_renderer.draw(screen)
 
+        # 宝箱の描画
+        self._draw_chests(screen, offset_x=-self.camera_x, offset_y=-self.camera_y)
+
         if self.fade_alpha > 0:
             self.fade_surface.fill((0, 0, 0, self.fade_alpha))
             screen.blit(self.fade_surface, (0, 0))
+
+        # スクリプトフェード（宿屋等の演出用）
+        if self._script_fade_alpha > 0:
+            self._script_fade_surface.set_alpha(self._script_fade_alpha)
+            screen.blit(self._script_fade_surface, (0, 0))
         
 

@@ -31,5 +31,70 @@
     },
     "script": "npc/traveler.lua",
     "movement": "fixed"
+  },
+  "shopkeeper_weapon": {
+    "name": "武器屋",
+    "sprite": "npc_shopkeeper",
+    "script": "npc/shopkeeper_weapon.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "castle_town_weapon",
+        "x": 4,
+        "y": 1
+      }
+    }
+  },
+  "shopkeeper_armor": {
+    "name": "防具屋",
+    "sprite": "npc_shopkeeper",
+    "script": "npc/shopkeeper_armor.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "castle_town_armor",
+        "x": 4,
+        "y": 1
+      }
+    }
+  },
+  "shopkeeper_item": {
+    "name": "道具屋",
+    "sprite": "npc_shopkeeper",
+    "script": "npc/shopkeeper_item.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "castle_town_item",
+        "x": 4,
+        "y": 1
+      }
+    }
+  },
+  "shopkeeper_magic": {
+    "name": "魔法屋",
+    "sprite": "npc_shopkeeper",
+    "script": "npc/shopkeeper_magic.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "castle_town_magic",
+        "x": 4,
+        "y": 1
+      }
+    }
+  },
+  "innkeeper": {
+    "name": "宿屋の主人",
+    "sprite": "npc_innkeeper",
+    "script": "npc/innkeeper.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "castle_town_inn",
+        "x": 4,
+        "y": 1
+      }
+    }
   }
 }

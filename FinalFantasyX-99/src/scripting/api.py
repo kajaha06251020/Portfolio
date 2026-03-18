@@ -120,6 +120,13 @@ class ScriptAPI:
             end
         """)
 
+        # Shop coroutine-yield wrapper
+        lua.execute("""
+            function npc.open_shop(shop_id)
+                coroutine.yield("shop", shop_id)
+            end
+        """)
+
         logger.debug("Registered npc namespace")
 
     # ------------------------------------------------------------------
@@ -327,6 +334,27 @@ class ScriptAPI:
                 inv[item_id] = new_count
             logger.debug("Item %s: %d -> %d", item_id, current, new_count)
 
+        def party_get_gold() -> int:
+            if api._game is None:
+                return 0
+            return api._game.gold
+
+        def party_remove_gold(amount: int) -> None:
+            if api._game is None:
+                return
+            amount = int(amount)
+            api._game.gold = max(0, api._game.gold - amount)
+            logger.debug("Gold removed %d -> %d", amount, api._game.gold)
+
+        def party_rest() -> None:
+            """Restore HP/MP for all party members."""
+            if api._game is None:
+                return
+            for member in api._game.party:
+                member["hp"] = member["max_hp"]
+                member["mp"] = member["max_mp"]
+            logger.debug("Party fully rested")
+
         lua.execute("party = {}")
         party_table = lua.eval("party")
         party_table["has_member"] = party_has_member
@@ -334,6 +362,9 @@ class ScriptAPI:
         party_table["add_gold"] = party_add_gold
         party_table["add_item"] = party_add_item
         party_table["remove_item"] = party_remove_item
+        party_table["get_gold"] = party_get_gold
+        party_table["remove_gold"] = party_remove_gold
+        party_table["rest"] = party_rest
 
         logger.debug("Registered party namespace")
 
@@ -391,6 +422,20 @@ class ScriptAPI:
         lua.execute("event = {}")
         event_table = lua.eval("event")
         event_table["trigger"] = event_trigger
+
+        # Coroutine-yield wrappers for fade/wait effects
+        lua.execute("""
+            event = event or {}
+            function event.fade_out()
+                coroutine.yield("fade_out")
+            end
+            function event.fade_in()
+                coroutine.yield("fade_in")
+            end
+            function event.wait(seconds)
+                coroutine.yield("wait", seconds)
+            end
+        """)
 
         logger.debug("Registered event namespace")
 
