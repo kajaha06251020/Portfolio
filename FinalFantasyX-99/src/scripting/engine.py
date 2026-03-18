@@ -29,6 +29,14 @@ _COROUTINE_HELPERS = """
 _co_registry = {}
 _co_next_id = 0
 
+-- Instruction limit hook: saved before debug is removed
+local _sethook = debug and debug.sethook or nil
+local _INSTRUCTION_LIMIT = {instruction_limit}
+
+local function _instruction_limit_hook()
+    error("instruction limit exceeded (" .. _INSTRUCTION_LIMIT .. " instructions)", 2)
+end
+
 function _co_create(func)
     local co = coroutine.create(func)
     _co_next_id = _co_next_id + 1
@@ -40,7 +48,16 @@ end
 function _co_resume(id, ...)
     local co = _co_registry[id]
     if not co then return false, "invalid coroutine id: " .. tostring(id) end
-    return coroutine.resume(co, ...)
+    -- Install instruction count hook on the coroutine thread
+    if _sethook then
+        _sethook(co, _instruction_limit_hook, "", _INSTRUCTION_LIMIT)
+    end
+    local results = {coroutine.resume(co, ...)}
+    -- Remove the hook after resume returns
+    if _sethook and coroutine.status(co) ~= "dead" then
+        _sethook(co, nil)
+    end
+    return table.unpack(results)
 end
 
 function _co_status(id)
@@ -103,8 +120,9 @@ class ScriptEngine:
     def _init_lua(self) -> None:
         """Create a LuaRuntime and apply sandboxing."""
         self._lua = LuaRuntime(unpack_returned_tuples=True)
-        self._sandbox()
+        # Install coroutine helpers BEFORE sandbox — they capture debug.sethook
         self._install_coroutine_helpers()
+        self._sandbox()
         logger.info("Lua runtime initialised (sandbox active)")
 
     def _sandbox(self) -> None:
@@ -117,9 +135,10 @@ class ScriptEngine:
         for name in _UNSAFE_GLOBALS:
             lua.execute(f"{name} = nil")
 
-        # Remove the debug library (we use Lua-side instruction counting
-        # via the coroutine helpers instead).
+        # Remove the debug library and load() (coroutine helpers already
+        # captured debug.sethook for instruction counting).
         lua.execute("debug = nil")
+        lua.execute("load = nil")
 
         logger.debug("Lua sandbox applied — removed unsafe globals")
 
@@ -129,7 +148,8 @@ class ScriptEngine:
         if lua is None:
             return
 
-        lua.execute(_COROUTINE_HELPERS)
+        helpers = _COROUTINE_HELPERS.replace("{instruction_limit}", str(INSTRUCTION_LIMIT))
+        lua.execute(helpers)
         self._co_create = lua.eval("_co_create")
         self._co_resume = lua.eval("_co_resume")
         self._co_status = lua.eval("_co_status")

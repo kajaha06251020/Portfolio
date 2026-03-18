@@ -79,7 +79,7 @@ class WorldStateManager:
     # Dot-path resolution
     # ------------------------------------------------------------------
 
-    def _resolve_path(self, dot_path: str) -> tuple:
+    def _resolve_path(self, dot_path: str, *, create_intermediate: bool = False) -> tuple:
         """Resolve a dot-path string to (parent_dict, final_key).
 
         Paths are resolved as follows:
@@ -90,10 +90,13 @@ class WorldStateManager:
         - "physical.healed_count"   -> state["layers"]["physical"]["healed_count"]
         - "dream.stability"         -> state["layers"]["dream"]["stability"]
 
-        The first segment is checked against top-level keys first.  If it
-        matches a top-level key ("global", "layers", "flags", "quest_states")
-        we drill into that.  Otherwise we assume it is a layer name under
-        "layers".
+        Parameters
+        ----------
+        create_intermediate : bool
+            When True (used by set_state), creates missing intermediate dicts
+            via setdefault. When False (used by get_state), raises KeyError if
+            an intermediate segment does not exist, preventing read-side
+            mutation of the state tree.
         """
         parts = dot_path.split(".")
         if not parts:
@@ -106,7 +109,12 @@ class WorldStateManager:
             node = self._state[root]
             for segment in parts[1:-1]:
                 if isinstance(node, dict):
-                    node = node.setdefault(segment, {})
+                    if create_intermediate:
+                        node = node.setdefault(segment, {})
+                    else:
+                        if segment not in node:
+                            raise KeyError(f"Segment {segment!r} not found in {dot_path!r}")
+                        node = node[segment]
                 else:
                     raise KeyError(f"Cannot traverse non-dict at {segment!r} in {dot_path!r}")
             if len(parts) == 1:
@@ -115,12 +123,17 @@ class WorldStateManager:
             return node, parts[-1]
 
         # Layer shorthand: "depth.distortion" -> state["layers"]["depth"]["distortion"]
-        layers = self._state.setdefault("layers", {})
+        layers = self._state.get("layers", {})
         if root in layers:
             node = layers[root]
             for segment in parts[1:-1]:
                 if isinstance(node, dict):
-                    node = node.setdefault(segment, {})
+                    if create_intermediate:
+                        node = node.setdefault(segment, {})
+                    else:
+                        if segment not in node:
+                            raise KeyError(f"Segment {segment!r} not found in {dot_path!r}")
+                        node = node[segment]
                 else:
                     raise KeyError(f"Cannot traverse non-dict at {segment!r} in {dot_path!r}")
             if len(parts) == 1:
@@ -157,7 +170,7 @@ class WorldStateManager:
     def _apply_state_change(self, dot_path: str, value: Any) -> None:
         """Actually apply a state change and fire rule callbacks."""
         try:
-            parent, key = self._resolve_path(dot_path)
+            parent, key = self._resolve_path(dot_path, create_intermediate=True)
         except KeyError:
             logger.error("set_state: unresolved path %r", dot_path)
             return
@@ -237,6 +250,8 @@ class WorldStateManager:
         old = self.get_flags().get(name)
         self.get_flags()[name] = value
         logger.debug("Flag %s: %r -> %r", name, old, value)
+        # Notify rules so they can react to flag changes
+        self._fire_rules("on_state_change", f"flags.{name}", old, value)
 
     # ------------------------------------------------------------------
     # Quest states convenience
@@ -247,6 +262,10 @@ class WorldStateManager:
 
     def set_quest_state(self, quest_id: str, state: str) -> None:
         self._state.setdefault("quest_states", {})[quest_id] = state
+
+    def notify_quest_complete(self, quest_id: str) -> None:
+        """Fire on_quest_complete rules. Called by QuestManager."""
+        self._fire_rules("on_quest_complete", quest_id)
 
     # ------------------------------------------------------------------
     # Rule registration

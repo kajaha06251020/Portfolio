@@ -350,6 +350,8 @@ class QuestManager:
 
         self._set_state(quest_id, "completed")
         self.distribute_rewards(quest_id)
+        # Fire on_quest_complete rules in WorldStateManager
+        self._wsm.notify_quest_complete(quest_id)
         logger.info("Quest completed: %s", quest_id)
 
     def fail_quest(self, quest_id: str) -> None:
