@@ -595,8 +595,12 @@ class BattleScene(BaseScene):
         actor = self.allies[self.active_actor_index]
 
         if command == "たたかう":
-            # ターゲット選択に入る
-            self._enter_target_selection("enemy", {"type": "attack"})
+            weapon_data = self._get_actor_weapon_data(actor)
+            if weapon_data.get("hits_all_enemies"):
+                # 全体攻撃はターゲット選択不要
+                self._execute_attack(None)
+            else:
+                self._enter_target_selection("enemy", {"type": "attack"})
 
         elif command == "ジョブ技":
             self.menu_state = "ability"
@@ -627,33 +631,52 @@ class BattleScene(BaseScene):
     # ------------------------------------------------------------------
     # 攻撃実行（ターゲット選択後）
     # ------------------------------------------------------------------
+    def _get_actor_weapon_data(self, actor: dict) -> dict:
+        """アクターが装備中の武器データを取得（なければ空dict）"""
+        weapon_id = actor.get("equipment", {}).get("weapon")
+        if not weapon_id or not self.item_system:
+            return {}
+        item = self.item_system.get_item(weapon_id)
+        return item.raw_data if item else {}
+
     def _execute_attack(self, target):
-        """たたかうコマンドの実行"""
+        """たたかうコマンドの実行（全体武器対応）"""
         actor = self.allies[self.active_actor_index]
 
-        # 暗闇による命中率低下
         accuracy_mult = self.status_manager.get_accuracy_multiplier(actor)
         if accuracy_mult < 1.0 and random.random() > accuracy_mult:
             self._push_message(f"{actor['name']}のこうげき！ しかしミスした！")
             self._end_actor_action()
             return
 
-        damage, is_critical = calculate_physical_damage(actor, target)
+        weapon_data = self._get_actor_weapon_data(actor)
 
-        # プロテス/シェルによるダメージ軽減
-        reduction = self.status_manager.get_damage_reduction_rate(target)
-        if reduction > 0:
-            damage = max(1, int(damage * (1.0 - reduction)))
+        if weapon_data.get("hits_all_enemies"):
+            # 全体攻撃: 全ての生存敵に75%ダメージ
+            alive_enemies = [e for e in self.enemies if e["alive"]]
+            weapon_name = weapon_data.get("name", "ブーメラン")
+            self._push_message(f"{actor['name']}の{weapon_name}！")
+            for enemy in alive_enemies:
+                damage, is_critical = calculate_physical_damage(actor, enemy)
+                damage = max(1, int(damage * 0.75))
+                reduction = self.status_manager.get_damage_reduction_rate(enemy)
+                if reduction > 0:
+                    damage = max(1, int(damage * (1.0 - reduction)))
+                self._deal_damage(enemy, damage, side="enemy")
+                self.status_manager.on_physical_attack(enemy)
+        elif target is not None:
+            # 通常単体攻撃（target が None の場合は何もしない安全ガード）
+            damage, is_critical = calculate_physical_damage(actor, target)
+            reduction = self.status_manager.get_damage_reduction_rate(target)
+            if reduction > 0:
+                damage = max(1, int(damage * (1.0 - reduction)))
+            self._deal_damage(target, damage, side="enemy")
+            self.status_manager.on_physical_attack(target)
+            if is_critical:
+                self._push_message(f"{actor['name']}のかいしん！")
+            else:
+                self._push_message(f"{actor['name']}のこうげき！")
 
-        self._deal_damage(target, damage, side="enemy")
-
-        # 物理攻撃による睡眠解除
-        self.status_manager.on_physical_attack(target)
-
-        if is_critical:
-            self._push_message(f"{actor['name']}のかいしん！")
-        else:
-            self._push_message(f"{actor['name']}のこうげき！")
         self._end_actor_action()
 
     # ------------------------------------------------------------------
