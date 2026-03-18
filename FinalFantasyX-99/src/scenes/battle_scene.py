@@ -663,6 +663,8 @@ class BattleScene(BaseScene):
                 if reduction > 0:
                     damage = max(1, int(damage * (1.0 - reduction)))
                 self._deal_damage(enemy, damage, side="enemy")
+                if is_critical:
+                    self._push_message(f"{enemy['name']}にかいしん！")
                 self.status_manager.on_physical_attack(enemy)
         elif target is not None:
             # 通常単体攻撃（target が None の場合は何もしない安全ガード）
