@@ -83,26 +83,36 @@
       "tmx": "dragon_cave.tmx",
       "name": "Dungeon",
       "display_name": "竜の洞窟",
-      "difficulty_range": [1, 20],
-      "recommended_level": 1,
+      "difficulty_range": [8, 14],
+      "recommended_level": 10,
       "width": 16,
       "height": 12,
       "background": "field_cave_dragon.png",
       "music": "bgm_cave_dragon",
-      "encounter_rate": 50,
+      "encounter_rate": 20,
       "safe_zones": [
         {
-          "zone_id": "dungeon_center",
-          "x": 0,
-          "y": 0,
-          "width": 16,
-          "height": 12,
-          "description": "Dungeon"
+          "zone_id": "cave_entrance",
+          "x": 6,
+          "y": 1,
+          "width": 3,
+          "height": 2,
+          "description": "Entrance"
         }
       ],
-      "encounter_zones": [],
+      "encounter_zones": [
+        {
+          "zone_id": "cave_main",
+          "x": 0,
+          "y": 2,
+          "width": 16,
+          "height": 10,
+          "enemies": ["bat", "goblin", "wolf"],
+          "encounter_rate": 20
+        }
+      ],
       "transitions": [],
-      "npcs": []
+      "npcs": ["drake_boss"]
     },
     {
       "map_id": "castle_town_weapon",
