@@ -36,6 +36,11 @@ class Game:
         self.character_data = CharacterDataManager()
         self.gold = 500
         self.last_town: dict | None = None  # キメラのつばさ用: {"map_id": ..., "x": ..., "y": ...}
+        # 図鑑データ: 出会った敵を記録
+        self.bestiary: dict = {
+            "enemies_seen": [],      # 出会った敵名リスト
+            "enemies_defeated": {},  # {敵名: 討伐数}
+        }
         self.playtime_seconds: float = 0.0
         self.inventory = {
             "potion": 5,

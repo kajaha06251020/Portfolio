@@ -137,6 +137,13 @@ class BattleScene(BaseScene):
 
         enemy_names = " / ".join(enemy["name"] for enemy in self.enemies)
         self._push_message(f"{enemy_names} があらわれた！")
+        # 図鑑に敵を記録
+        bestiary = getattr(self.game, "bestiary", None)
+        if bestiary is not None:
+            for enemy in self.enemies:
+                name = enemy.get("name", "")
+                if name and name not in bestiary["enemies_seen"]:
+                    bestiary["enemies_seen"].append(name)
 
     # ------------------------------------------------------------------
     # パーティ生成: CharacterDataManagerからデータを読み込む
@@ -916,6 +923,11 @@ class BattleScene(BaseScene):
             target["hp"] = 0
             target["alive"] = False
             self._push_message(f"{target['name']}をたおした！")
+            bestiary = getattr(self.game, "bestiary", None)
+            if bestiary is not None:
+                name = target.get("name", "")
+                if name:
+                    bestiary["enemies_defeated"][name] = bestiary["enemies_defeated"].get(name, 0) + 1
 
     def _add_popup(self, unit: dict, text: str, color: tuple):
         popup_x = unit["x"] + unit["w"] // 2

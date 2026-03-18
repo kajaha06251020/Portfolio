@@ -6,6 +6,7 @@ import pygame
 
 from src.scenes.base_scene import BaseScene
 from src.audio_manager import get_audio_manager
+from src.ui.bestiary_ui import BestiaryUI
 from src.constants import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -28,7 +29,7 @@ class MenuScene(BaseScene):
         self.small_font = None
         self.state = "main"
         self.selected_index = 0
-        self.main_items = ["パーティ", "インベントリ", "装備変更", "クエスト", "セーブ", "タイトルへ", "もどる"]
+        self.main_items = ["パーティ", "インベントリ", "装備変更", "クエスト", "図鑑", "セーブ", "タイトルへ", "もどる"]
         self.item_name_cache = None
         self.item_data_cache = None
         self.selected_actor_index = 0
@@ -56,6 +57,8 @@ class MenuScene(BaseScene):
         self._ensure_cursor_loaded()
         if hasattr(self.game, "character_data"):
             self.game.character_data.ensure_integrity()
+        if not hasattr(self.game, "bestiary_ui") or self.game.bestiary_ui is None:
+            self.game.bestiary_ui = BestiaryUI(self.game)
 
     def handle_events(self, events: list):
         # Save slot UI handles its own input when active
@@ -65,6 +68,16 @@ class MenuScene(BaseScene):
             for event in events:
                 save_slot_ui.handle_event(event)
             return
+
+        # Bestiary overlay handles its own input when active
+        if self.state == "bestiary":
+            bestiary_ui = getattr(self.game, "bestiary_ui", None)
+            if bestiary_ui and bestiary_ui.active:
+                bestiary_ui.handle_events(events)
+                if not bestiary_ui.active:
+                    self.state = "main"
+                    self.selected_index = 4
+                return
 
         # Quest log overlay handles its own input when active
         if self.state == "quest_log":
@@ -321,15 +334,22 @@ class MenuScene(BaseScene):
             else:
                 self.info_message = "クエストシステムは未初期化です"
         elif index == 4:
+            bestiary_ui = getattr(self.game, "bestiary_ui", None)
+            if bestiary_ui:
+                self.state = "bestiary"
+                bestiary_ui.open()
+            else:
+                self.info_message = "図鑑が初期化されていません"
+        elif index == 5:  # セーブ (was 4)
             map_scene = self.game.scenes.get("map")
             save_slot_ui = getattr(map_scene, "save_slot_ui", None) if map_scene else None
             if save_slot_ui is None:
                 self.info_message = "セーブUIが初期化されていません"
             else:
                 save_slot_ui.show("menu", self._on_menu_save_done)
-        elif index == 5:
+        elif index == 6:  # タイトルへ (was 5)
             self.game.change_scene("title")
-        elif index == 6:
+        elif index == 7:  # もどる (was 6)
             self.game.change_scene("map")
 
     def _on_menu_save_done(self, slot):
@@ -881,6 +901,11 @@ class MenuScene(BaseScene):
         save_slot_ui = getattr(map_scene, "save_slot_ui", None) if map_scene else None
         if save_slot_ui is not None:
             save_slot_ui.draw(screen)
+
+        if self.state == "bestiary":
+            bestiary_ui = getattr(self.game, "bestiary_ui", None)
+            if bestiary_ui:
+                bestiary_ui.draw(screen)
 
     def _draw_party_summary(self, screen: pygame.Surface, content_rect: pygame.Rect):
         party = getattr(self.game, "party", [])

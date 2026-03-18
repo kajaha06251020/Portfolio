@@ -157,6 +157,10 @@ class SaveManager:
             "inventory": dict(self.game.inventory),
             "gold": self.game.gold,
             "world_state": copy.deepcopy(self.game.world_state_manager._state),
+            "bestiary": copy.deepcopy(getattr(self.game, "bestiary", {
+                "enemies_seen": [], "enemies_defeated": {}
+            })),
+            "last_town": copy.deepcopy(getattr(self.game, "last_town", None)),
         }
 
     def _deserialize(self, data: dict) -> None:
@@ -185,3 +189,8 @@ class SaveManager:
         # プレイ時間を復元
         if hasattr(self.game, "playtime_seconds"):
             self.game.playtime_seconds = data.get("meta", {}).get("playtime_seconds", 0.0)
+
+        if "bestiary" in data and hasattr(self.game, "bestiary"):
+            self.game.bestiary = data["bestiary"]
+        if "last_town" in data and hasattr(self.game, "last_town"):
+            self.game.last_town = data["last_town"]
