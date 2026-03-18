@@ -63,6 +63,8 @@ class BestiaryUI:
     def draw(self, screen: pygame.Surface):
         if not self.active:
             return
+        if not self.small_font:
+            return
 
         # 背景パネル
         panel = UIPanel(

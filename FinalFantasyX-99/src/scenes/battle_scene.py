@@ -923,11 +923,12 @@ class BattleScene(BaseScene):
             target["hp"] = 0
             target["alive"] = False
             self._push_message(f"{target['name']}をたおした！")
-            bestiary = getattr(self.game, "bestiary", None)
-            if bestiary is not None:
-                name = target.get("name", "")
-                if name:
-                    bestiary["enemies_defeated"][name] = bestiary["enemies_defeated"].get(name, 0) + 1
+            if side == "enemy":
+                bestiary = getattr(self.game, "bestiary", None)
+                if bestiary is not None:
+                    name = target.get("name", "")
+                    if name:
+                        bestiary["enemies_defeated"][name] = bestiary["enemies_defeated"].get(name, 0) + 1
 
     def _add_popup(self, unit: dict, text: str, color: tuple):
         popup_x = unit["x"] + unit["w"] // 2
