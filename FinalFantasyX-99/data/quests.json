@@ -2,7 +2,7 @@
   "main_ch1_01": {
     "type": "main",
     "title": "万層紋の目覚め",
-    "description": "腕に刻まれた紋様の正体を探る。",
+    "description": "北の竜の洞窟に棲むドレイクを討伐せよ。大地の歪みの原因を突き止めるのだ。",
     "chapter": 1,
     "prerequisites": [],
     "layers_involved": ["physical"],
@@ -10,7 +10,7 @@
     "rewards": {
       "exp": 500,
       "gold": 300,
-      "items": [{"id": "potion", "count": 3}]
+      "items": [{"id": "potion", "count": 5}, {"id": "ether", "count": 2}]
     }
   },
   "sub_castle_01": {

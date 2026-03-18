@@ -96,5 +96,31 @@
         "y": 1
       }
     }
+  },
+  "drake_boss": {
+    "name": "ドレイク",
+    "sprite": "enemy_drake",
+    "script": "npc/drake_boss.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "dragon_cave",
+        "x": 8,
+        "y": 3
+      }
+    }
+  },
+  "castle_guard": {
+    "name": "城の衛兵",
+    "sprite": "npc_guard",
+    "script": "npc/castle_guard.lua",
+    "movement": "fixed",
+    "layers": {
+      "physical": {
+        "map": "castle",
+        "x": 8,
+        "y": 6
+      }
+    }
   }
 }
