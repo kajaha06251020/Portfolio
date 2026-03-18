@@ -172,7 +172,12 @@ class MenuScene(BaseScene):
             options = []
             for slot in self.equipment_slots:
                 item_id = actor.get("equipment", {}).get(slot)
-                equip_name = self._resolve_item_name(item_id) if item_id else "-"
+                if item_id:
+                    equip_name = self._resolve_item_name(item_id)
+                    if self._is_item_cursed(item_id):
+                        equip_name = f"呪 {equip_name}"
+                else:
+                    equip_name = "-"
                 options.append(f"{slot_labels.get(slot, slot)}: {equip_name}")
             return options
 
@@ -398,6 +403,12 @@ class MenuScene(BaseScene):
         if not self.item_name_cache:
             return item_id
         return self.item_name_cache.get(item_id, item_id)
+
+    def _is_item_cursed(self, item_id: str) -> bool:
+        """アイテムが呪われているか確認"""
+        if not item_id or not self.item_data_cache:
+            return False
+        return bool(self.item_data_cache.get(item_id, {}).get("cursed", False))
 
     def _get_inventory_id_entries(self):
         inventory = getattr(self.game, "inventory", {})
@@ -676,6 +687,10 @@ class MenuScene(BaseScene):
 
         if new_item_id is None:
             if old_item_id:
+                # 呪いチェック
+                if self._is_item_cursed(old_item_id):
+                    self.info_message = f"呪われている！{self._resolve_item_name(old_item_id)}は外せない！"
+                    return
                 self._add_inventory_item(old_item_id, 1)
                 actor["equipment"][slot] = None
                 self._recalculate_actor_stats(actor)
