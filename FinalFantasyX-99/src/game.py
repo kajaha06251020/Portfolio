@@ -18,6 +18,7 @@ from src.quest.quest_log_ui import QuestLogUI
 from src.scenes.shop_scene import ShopScene
 from src.world.treasure import TreasureManager
 from src.world.gimmick_manager import GimmickManager
+from src.world.door_manager import DoorManager
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +60,10 @@ class Game:
         self.script_api.quest_manager = self.quest_manager
         self.quest_log_ui = QuestLogUI(self.quest_manager)
 
-        # 宝箱・ギミック管理
+        # 宝箱・ギミック・ドア管理
         self.treasure_manager = TreasureManager(self.world_state_manager, self)
         self.gimmick_manager = GimmickManager(self.world_state_manager, self)
+        self.door_manager = DoorManager(self.world_state_manager)
 
         # シーン管理
         self.scenes = {
@@ -77,13 +79,14 @@ class Game:
         # 共通Luaスクリプト（ワールドルール等）を読み込み
         self.script_api.load_common_scripts()
 
-        # MapSceneにスクリプトエンジン・宝箱・ギミックを接続
+        # MapSceneにスクリプトエンジン・宝箱・ギミック・ドアを接続
         map_scene = self.scenes.get("map")
         if map_scene and hasattr(map_scene, "init_npc_system"):
             map_scene.init_npc_system(self.script_engine)
         if map_scene:
             map_scene.treasure_manager = self.treasure_manager
             map_scene.gimmick_manager = self.gimmick_manager
+            map_scene.door_manager = self.door_manager
 
     @property
     def party(self):
