@@ -84,14 +84,16 @@ class SaveSlotUI:
     """セーブスロット選択UI（セーブ時のみ使用）
 
     使い方:
-        ui = SaveSlotUI(save_manager)
+        ui = SaveSlotUI(game)
         ui.show(save_type="tile", callback=on_save_done)
-        # update()/draw() をメインループから呼ぶ
-        # セーブ完了 or キャンセルで callback(slot_or_None) が呼ばれる
+        # handle_event()/draw() をイベントループから呼ぶ
+        # スロット選択確定で callback(slot: int) が呼ばれる
+        # キャンセルで callback(None) が呼ばれる
     """
 
-    def __init__(self, save_manager) -> None:
-        self.save_manager = save_manager
+    def __init__(self, game) -> None:
+        self._game = game
+        # save_manager は game 経由でアクセス（遅延参照）
         self.state: str = "HIDDEN"          # "HIDDEN" | "SLOT_SELECT" | "CONFIRM"
         self.selected_slot: int = 1         # 1-based
         self._save_type: str = "tile"
@@ -111,6 +113,10 @@ class SaveSlotUI:
 
     @property
     def is_active(self) -> bool:
+        return self.state != "HIDDEN"
+
+    def is_visible(self) -> bool:
+        """UIが表示中かどうか（is_active の別名）"""
         return self.state != "HIDDEN"
 
     # ------------------------------------------------------------------
@@ -188,11 +194,24 @@ class SaveSlotUI:
 
     def _refresh_slots(self) -> None:
         """save_manager からスロット情報を取得してキャッシュする。"""
+        save_manager = getattr(self._game, "save_manager", None)
         self._slots = []
         for slot_index in range(1, NUM_SLOTS + 1):
+            if save_manager is None:
+                self._slots.append(None)
+                continue
             try:
-                data = self.save_manager.load_slot(slot_index)
-                self._slots.append(data)
+                raw = save_manager.get_slot_info(slot_index)
+                if raw is None:
+                    self._slots.append(None)
+                else:
+                    meta = raw.get("meta", {})
+                    self._slots.append({
+                        "map_name": meta.get("map_display_name", ""),
+                        "level": meta.get("party_leader_level", ""),
+                        "timestamp": meta.get("timestamp", ""),
+                        "playtime": meta.get("playtime_seconds", 0.0),
+                    })
             except Exception:
                 self._slots.append(None)
 
@@ -230,10 +249,6 @@ class SaveSlotUI:
     # ------------------------------------------------------------------
 
     def _execute_save(self) -> None:
-        try:
-            self.save_manager.save_slot(self.selected_slot)
-        except Exception:
-            pass  # 呼び出し元に任せる
         slot = self.selected_slot
         self.state = "HIDDEN"
         if self._callback is not None:

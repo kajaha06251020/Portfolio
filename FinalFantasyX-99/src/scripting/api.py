@@ -423,7 +423,7 @@ class ScriptAPI:
         event_table = lua.eval("event")
         event_table["trigger"] = event_trigger
 
-        # Coroutine-yield wrappers for fade/wait effects
+        # Coroutine-yield wrappers for fade/wait/battle effects
         lua.execute("""
             event = event or {}
             function event.fade_out()
@@ -434,6 +434,12 @@ class ScriptAPI:
             end
             function event.wait(seconds)
                 coroutine.yield("wait", seconds)
+            end
+            function event.start_battle(enemy_type, count, level)
+                return coroutine.yield("battle", enemy_type, count or 1, level or 1)
+            end
+            function event.open_save(save_type)
+                coroutine.yield("open_save", save_type or "npc_king")
             end
         """)
 

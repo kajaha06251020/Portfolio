@@ -94,6 +94,12 @@ class MapScene(BaseScene):
 
         # ボスバトル結果（push_scene経由のバトルから戻った時用）
         self._pending_coroutine_result = None
+
+        # ゲームオーバー後の神父セリフフラグ
+        self._pending_priest_dialogue = False
+
+        # セーブスロットUI（game.pyでセット）
+        self.save_slot_ui = None
         
     def _load_maps(self):
         """マップデータを読み込み"""
@@ -185,6 +191,12 @@ class MapScene(BaseScene):
     
     def handle_events(self, events: list):
         """イベント処理"""
+        # セーブスロットUIが表示中はそちらにイベントを渡す
+        if self.save_slot_ui is not None and self.save_slot_ui.is_visible():
+            for event in events:
+                self.save_slot_ui.handle_event(event)
+            return
+
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if self.fade_state is not None:
@@ -199,13 +211,15 @@ class MapScene(BaseScene):
                             self._advance_dialogue()
                     continue
 
-                # アクションキー (Enter / Space / Z): NPC会話 → 宝箱 → ギミック
+                # アクションキー (Enter / Space / Z): NPC会話 → 宝箱 → ギミック → セーブポイント
                 if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
                     if self._try_start_npc_dialogue():
                         continue
                     if self._try_interact_chest():
                         continue
                     if self._try_interact_gimmick():
+                        continue
+                    if self._try_interact_save_point():
                         continue
 
                 if event.key == pygame.K_ESCAPE:
@@ -235,6 +249,14 @@ class MapScene(BaseScene):
         if self.fade_state is not None:
             self._update_fade_transition()
             return
+
+        # ゲームオーバーからの復帰時：神父セリフを表示
+        if self._pending_priest_dialogue:
+            self._pending_priest_dialogue = False
+            self.dialogue_renderer.show_dialogue(
+                "神父",
+                "死んでしまうとはな...これも神様の思し召しであろう。さぁ、行くがよい！！",
+            )
 
         # ドアアニメーション中は入力をロック
         if self.door_manager is not None and self.door_manager.is_animating():
@@ -294,6 +316,9 @@ class MapScene(BaseScene):
 
             if self._check_map_transition():
                 return
+
+            # セーブポイントタイル判定
+            self._check_save_point_tile()
 
             self.encounter_steps += 1
 
@@ -761,6 +786,13 @@ class MapScene(BaseScene):
                 count = int(yielded[2]) if len(yielded) >= 3 else 1
                 level = int(yielded[3]) if len(yielded) >= 4 else 1
                 self._start_script_battle(enemy_type, count, level)
+            elif cmd == "open_save" and len(yielded) >= 2:
+                # NPCセーブ: コルーチンを終了してセーブスロットUIを開く
+                save_type = str(yielded[1])
+                self.dialogue_coroutine = None
+                self.dialogue_npc_id = None
+                self.dialogue_renderer.reset()
+                self._show_save_slot_ui(save_type)
             else:
                 logger.warning("Unknown dialogue command: %s", cmd)
                 self.dialogue_coroutine = None
@@ -1334,6 +1366,72 @@ class MapScene(BaseScene):
             self.dialogue_renderer.show_dialogue("", event.message)
         return True
 
+    # ------------------------------------------------------------------
+    # セーブポイント
+    # ------------------------------------------------------------------
+
+    def _check_save_point_tile(self) -> None:
+        """プレイヤーが踏んだタイルがセーブポイントか判定してUIを開く（タイル型）"""
+        if self.tmx_data is None:
+            return
+        x = self.player.grid_x
+        y = self.player.grid_y
+        for layer_index in self.map_tile_layers:
+            gid = self.tmx_data.get_tile_gid(x, y, layer_index)
+            if gid == 0:
+                continue
+            props = self.tmx_data.get_tile_properties_by_gid(gid) or {}
+            if str(props.get("Type", "")).strip().lower() == "save_point":
+                self._show_save_slot_ui("tile")
+                return
+
+    def _try_interact_save_point(self) -> bool:
+        """プレイヤー前方オブジェクトがセーブポイントか判定してUIを開く（オブジェクト型）"""
+        if self.tmx_data is None:
+            return False
+
+        dx, dy = 0, 0
+        if self.player.direction == "up": dy = -1
+        elif self.player.direction == "down": dy = 1
+        elif self.player.direction == "left": dx = -1
+        elif self.player.direction == "right": dx = 1
+
+        target_x = self.player.grid_x + dx
+        target_y = self.player.grid_y + dy
+
+        tile_w = self.tmx_data.tilewidth
+        tile_h = self.tmx_data.tileheight
+
+        for obj_group in self.tmx_data.objectgroups:
+            for obj in obj_group:
+                obj_type = getattr(obj, "type", "") or ""
+                if obj_type.lower() != "save_point":
+                    continue
+                gx = int(obj.x // tile_w)
+                gy = int(obj.y // tile_h)
+                if gx == target_x and gy == target_y:
+                    self._show_save_slot_ui("object")
+                    return True
+        return False
+
+    def _show_save_slot_ui(self, save_type: str) -> None:
+        """セーブスロット選択UIを表示する"""
+        if self.save_slot_ui is None:
+            # save_slot_ui が未セットの場合は遅延インポートで生成
+            from src.ui.save_slot_ui import SaveSlotUI
+            self.save_slot_ui = SaveSlotUI(self.game)
+
+        save_manager = getattr(self.game, "save_manager", None)
+        if save_manager is None:
+            logger.warning("_show_save_slot_ui: save_manager not found")
+            return
+
+        def on_save_complete(slot: int):
+            save_manager.save(slot, save_type)
+            self.dialogue_renderer.show_dialogue("", "セーブしました。")
+
+        self.save_slot_ui.show(save_type=save_type, callback=on_save_complete)
+
     def draw(self, screen: pygame.Surface):
         """描画処理"""
         # TMXマップを描画
@@ -1410,6 +1508,10 @@ class MapScene(BaseScene):
 
         # ロケーション名表示（最前面）
         self._draw_location_name(screen)
+
+        # セーブスロットUI（最前面）
+        if self.save_slot_ui is not None and self.save_slot_ui.is_visible():
+            self.save_slot_ui.draw(screen)
 
     def _redraw_tmx_surface(self):
         """タイル変更後にTMXサーフェスを再描画"""

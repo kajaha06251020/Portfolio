@@ -79,7 +79,7 @@ class SaveManager:
         best_slot: int | None = None
         best_ts: str = ""
 
-        for slot in range(self.SLOT_COUNT):
+        for slot in range(1, self.SLOT_COUNT + 1):
             info = self.get_slot_info(slot)
             if info is None:
                 continue
@@ -125,7 +125,7 @@ class SaveManager:
 
     def has_any_save(self) -> bool:
         """いずれかのスロットファイルが存在すれば ``True``。"""
-        return any(self._slot_path(slot).exists() for slot in range(self.SLOT_COUNT))
+        return any(self._slot_path(slot).exists() for slot in range(1, self.SLOT_COUNT + 1))
 
     def get_save_type(self) -> str | None:
         """最後にロードしたセーブの種別を返す。"""

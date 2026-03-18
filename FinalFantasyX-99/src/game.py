@@ -19,6 +19,8 @@ from src.scenes.shop_scene import ShopScene
 from src.world.treasure import TreasureManager
 from src.world.gimmick_manager import GimmickManager
 from src.world.door_manager import DoorManager
+from src.world.save_manager import SaveManager
+from src.scenes.game_over_scene import GameOverScene
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ class Game:
         self.running = True
         self.character_data = CharacterDataManager()
         self.gold = 500
+        self.playtime_seconds: float = 0.0
         self.inventory = {
             "potion": 5,
             "ether": 3,
@@ -65,6 +68,9 @@ class Game:
         self.gimmick_manager = GimmickManager(self.world_state_manager, self)
         self.door_manager = DoorManager(self.world_state_manager)
 
+        # セーブ管理
+        self.save_manager = SaveManager(self)
+
         # シーン管理
         self.scenes = {
             "title": TitleScene(self),
@@ -72,6 +78,7 @@ class Game:
             "battle": BattleScene(self),
             "menu": MenuScene(self),
             "shop": ShopScene(self),
+            "game_over": GameOverScene(self),
         }
         self.current_scene = "title"
         self._scene_stack: list[str] = []
@@ -87,6 +94,8 @@ class Game:
             map_scene.treasure_manager = self.treasure_manager
             map_scene.gimmick_manager = self.gimmick_manager
             map_scene.door_manager = self.door_manager
+            from src.ui.save_slot_ui import SaveSlotUI
+            map_scene.save_slot_ui = SaveSlotUI(self)
 
     @property
     def party(self):
@@ -136,4 +145,5 @@ class Game:
             self.scenes[self.current_scene].draw(self.screen)
             
             pygame.display.flip()
-            self.clock.tick(FPS)
+            dt = self.clock.tick(FPS) / 1000.0
+            self.playtime_seconds += dt

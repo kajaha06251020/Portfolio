@@ -405,7 +405,15 @@ class BattleScene(BaseScene):
             if event.type == pygame.KEYDOWN:
                 if self.battle_state in ["victory", "defeat"]:
                     if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                        self.game.change_scene("map")
+                        # スクリプト経由のボスバトルはpop_sceneで戻る
+                        if getattr(self.game, '_battle_from_script', False):
+                            self.game._battle_from_script = False
+                            self.game._last_battle_result = self.battle_state
+                            self.game.pop_scene()
+                        elif self.battle_state == "defeat":
+                            self.game.change_scene("game_over")
+                        else:
+                            self.game.change_scene("map")
                     continue
 
                 if self.active_actor_index is None:
@@ -606,7 +614,12 @@ class BattleScene(BaseScene):
         elif command == "にげる":
             if random.random() < 0.55:
                 self._push_message("うまく にげきれた！")
-                self.game.change_scene("map")
+                if getattr(self.game, '_battle_from_script', False):
+                    self.game._battle_from_script = False
+                    self.game._last_battle_result = "escape"
+                    self.game.pop_scene()
+                else:
+                    self.game.change_scene("map")
             else:
                 self._push_message("にげられない！")
                 self._end_actor_action()
