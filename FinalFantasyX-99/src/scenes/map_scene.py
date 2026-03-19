@@ -92,6 +92,9 @@ class MapScene(BaseScene):
         self._location_name_phase = None  # "in" / "hold" / "out" / None
         self._location_name_last_map = None
 
+        # 汎用インフォメッセージ（称号獲得通知など）
+        self._info_messages: list[dict] = []  # {"text": str, "timer": float, "alpha": int}
+
         # ボスバトル結果（push_scene経由のバトルから戻った時用）
         self._pending_coroutine_result = None
 
@@ -275,6 +278,9 @@ class MapScene(BaseScene):
 
         # ロケーション名フェード更新
         self._update_location_name()
+
+        # インフォメッセージ更新
+        self._update_info_messages()
 
         # NPC移動の更新
         if self.npc_manager is not None:
@@ -543,6 +549,45 @@ class MapScene(BaseScene):
         text_x = bar_x + (bar_w - text_surf.get_width()) // 2
         text_y = bar_y + (bar_h - text_surf.get_height()) // 2
         screen.blit(text_surf, (text_x, text_y))
+
+    # ------------------------------------------------------------------
+    # 汎用インフォメッセージ（称号獲得通知など）
+    # ------------------------------------------------------------------
+
+    def show_info_message(self, text: str, duration: float = 3.0) -> None:
+        """画面に短時間テキストを表示するキューに追加する。"""
+        self._info_messages.append({"text": text, "timer": duration, "alpha": 255})
+
+    def _update_info_messages(self) -> None:
+        """インフォメッセージのタイマーを進め、終了したものを除去する。"""
+        for msg in self._info_messages:
+            msg["timer"] -= 1.0 / 60.0
+            if msg["timer"] < 0.5:
+                fade = max(0, int(msg["timer"] / 0.5 * 255))
+                msg["alpha"] = fade
+        self._info_messages = [m for m in self._info_messages if m["timer"] > 0]
+
+    def _draw_info_messages(self, screen: pygame.Surface) -> None:
+        """インフォメッセージを画面下部に積み上げて描画する。"""
+        if not self._info_messages:
+            return
+        font = get_font(scaled(18))
+        base_y = SCREEN_HEIGHT - scaled(60)
+        for i, msg in enumerate(reversed(self._info_messages)):
+            text_surf = font.render(msg["text"], True, (255, 230, 80))
+            bar_w = text_surf.get_width() + scaled(30)
+            bar_h = text_surf.get_height() + scaled(10)
+            bar_x = (SCREEN_WIDTH - bar_w) // 2
+            bar_y = base_y - i * (bar_h + scaled(4))
+            alpha = msg["alpha"]
+            bg_surf = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
+            bg_surf.fill((0, 0, 0, min(180, alpha)))
+            pygame.draw.rect(bg_surf, (255, 200, 60, min(220, alpha)), (0, 0, bar_w, bar_h), 2)
+            screen.blit(bg_surf, (bar_x, bar_y))
+            text_surf.set_alpha(alpha)
+            text_x = bar_x + (bar_w - text_surf.get_width()) // 2
+            text_y = bar_y + (bar_h - text_surf.get_height()) // 2
+            screen.blit(text_surf, (text_x, text_y))
 
     def _draw_location_markers(self, screen: pygame.Surface):
         """ワールドマップ上にロケーションマーカーを描画"""
@@ -1525,6 +1570,9 @@ class MapScene(BaseScene):
 
         # ロケーション名表示（最前面）
         self._draw_location_name(screen)
+
+        # インフォメッセージ表示（称号獲得通知など）
+        self._draw_info_messages(screen)
 
         # セーブスロットUI（最前面）
         if self.save_slot_ui is not None and self.save_slot_ui.is_visible():

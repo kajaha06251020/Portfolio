@@ -22,6 +22,7 @@ from src.world.gimmick_manager import GimmickManager
 from src.world.door_manager import DoorManager
 from src.world.save_manager import SaveManager
 from src.scenes.game_over_scene import GameOverScene
+from src.world.title_manager import TitleManager
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,9 @@ class Game:
             "enemies_defeated": {},  # {敵名: 討伐数}
         }
         self.playtime_seconds: float = 0.0
+        self.titles: list = []            # 獲得済み称号IDリスト
+        self.battles_fled: int = 0        # 逃走回数
+        self.total_damage_dealt: int = 0  # 累計ダメージ量
         self.inventory = {
             "potion": 5,
             "ether": 3,
@@ -78,6 +82,9 @@ class Game:
 
         # セーブ管理
         self.save_manager = SaveManager(self)
+
+        # 称号管理
+        self.title_manager = TitleManager(self)
 
         # シーン管理
         self.scenes = {

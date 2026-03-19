@@ -625,6 +625,7 @@ class BattleScene(BaseScene):
         elif command == "にげる":
             if random.random() < 0.55:
                 self._push_message("うまく にげきれた！")
+                self.game.battles_fled = getattr(self.game, "battles_fled", 0) + 1
                 if getattr(self.game, '_battle_from_script', False):
                     self.game._battle_from_script = False
                     self.game._last_battle_result = "escape"
@@ -658,6 +659,10 @@ class BattleScene(BaseScene):
 
         weapon_data = self._get_actor_weapon_data(actor)
 
+        # 称号ATKボーナスを計算
+        title_manager = getattr(self.game, "title_manager", None)
+        title_atk_bonus = title_manager.get_stat_bonus().get("atk", 0) if title_manager else 0
+
         if weapon_data.get("hits_all_enemies"):
             # 全体攻撃: 全ての生存敵に75%ダメージ
             alive_enemies = [e for e in self.enemies if e["alive"]]
@@ -666,6 +671,8 @@ class BattleScene(BaseScene):
             for enemy in alive_enemies:
                 damage, is_critical = calculate_physical_damage(actor, enemy)
                 damage = max(1, int(damage * 0.75))
+                if title_atk_bonus > 0:
+                    damage = max(1, damage + title_atk_bonus)
                 reduction = self.status_manager.get_damage_reduction_rate(enemy)
                 if reduction > 0:
                     damage = max(1, int(damage * (1.0 - reduction)))
@@ -676,6 +683,8 @@ class BattleScene(BaseScene):
         elif target is not None:
             # 通常単体攻撃（target が None の場合は何もしない安全ガード）
             damage, is_critical = calculate_physical_damage(actor, target)
+            if title_atk_bonus > 0:
+                damage = max(1, damage + title_atk_bonus)
             reduction = self.status_manager.get_damage_reduction_rate(target)
             if reduction > 0:
                 damage = max(1, int(damage * (1.0 - reduction)))
@@ -918,6 +927,10 @@ class BattleScene(BaseScene):
         # before invoking _deal_damage. Do NOT apply it again here.
         target["hp"] -= damage
         self._add_popup(target, str(damage), RED)
+
+        # 敵へのダメージを累計に記録
+        if side == "enemy" and damage > 0:
+            self.game.total_damage_dealt = getattr(self.game, "total_damage_dealt", 0) + damage
 
         if target["hp"] <= 0:
             target["hp"] = 0
@@ -1334,6 +1347,16 @@ class BattleScene(BaseScene):
         # レベルアップ情報をメッセージログに追加
         for level_up in rewards.get("level_ups", []):
             self._push_message(f"{level_up['name']}のレベルが{level_up['new_level']}になった！")
+
+        # 称号チェック・付与
+        title_manager = getattr(self.game, "title_manager", None)
+        if title_manager is not None:
+            newly = title_manager.check_and_award()
+            if newly:
+                map_scene = self.game.scenes.get("map")
+                if map_scene and hasattr(map_scene, "show_info_message"):
+                    for title_name in newly:
+                        map_scene.show_info_message(f"称号獲得: {title_name}！", duration=3.0)
 
     def _sync_party_to_game(self):
         self.game.party = [

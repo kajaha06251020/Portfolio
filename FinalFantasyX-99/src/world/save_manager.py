@@ -161,6 +161,9 @@ class SaveManager:
                 "enemies_seen": [], "enemies_defeated": {}
             })),
             "last_town": copy.deepcopy(getattr(self.game, "last_town", None)),
+            "titles": list(getattr(self.game, "titles", [])),
+            "battles_fled": getattr(self.game, "battles_fled", 0),
+            "total_damage_dealt": getattr(self.game, "total_damage_dealt", 0),
         }
 
     def _deserialize(self, data: dict) -> None:
@@ -194,3 +197,9 @@ class SaveManager:
             self.game.bestiary = data["bestiary"]
         if "last_town" in data and hasattr(self.game, "last_town"):
             self.game.last_town = data["last_town"]
+        if "titles" in data:
+            self.game.titles = data["titles"]
+        if "battles_fled" in data:
+            self.game.battles_fled = data["battles_fled"]
+        if "total_damage_dealt" in data:
+            self.game.total_damage_dealt = data["total_damage_dealt"]
