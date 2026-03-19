@@ -82,7 +82,7 @@ class BattleScene(BaseScene):
         self.audio_manager = get_audio_manager()
 
         # まほうコマンドを削除 -- 魔法はジョブ技に統合
-        self.main_commands = ["たたかう", "ジョブ技", "アイテム", "ぼうぎょ", "にげる"]
+        self.main_commands = ["たたかう", "ジョブ技", "アイテム", "ためる", "ぼうぎょ", "にげる"]
 
         # menu_state: none, main, ability, item, target_selection
         self.menu_state = "none"
@@ -109,6 +109,8 @@ class BattleScene(BaseScene):
         self._ensure_cursor_loaded()
 
         self.allies = self._create_party()
+        for ally in self.allies:
+            ally.setdefault("tension", 0)
         if self.pending_encounter_group:
             self.enemies = self._create_enemy_group_from_encounter(self.pending_encounter_group)
         else:
@@ -617,6 +619,15 @@ class BattleScene(BaseScene):
             self.menu_state = "item"
             self.menu_index = 0
 
+        elif command == "ためる":
+            actor["tension"] = min(actor.get("tension", 0) + 1, 4)
+            level = actor["tension"]
+            if level == 4:
+                self._push_message(f"{actor['name']}は 気合いがみなぎった！（MAX）")
+            else:
+                self._push_message(f"{actor['name']}は 気合いをためている！（Lv{level}）")
+            self._end_actor_action()
+
         elif command == "ぼうぎょ":
             actor["defending"] = True
             self._push_message(f"{actor['name']}は ぼうぎょのたいせい！")
@@ -668,9 +679,15 @@ class BattleScene(BaseScene):
             alive_enemies = [e for e in self.enemies if e["alive"]]
             weapon_name = weapon_data.get("name", "ブーメラン")
             self._push_message(f"{actor['name']}の{weapon_name}！")
+            tension = actor.get("tension", 0)
+            tension_mult = 2 ** tension if tension > 0 else 1.0
+            if tension > 0:
+                actor["tension"] = 0  # テンションを消費
             for enemy in alive_enemies:
                 damage, is_critical = calculate_physical_damage(actor, enemy)
-                damage = max(1, int(damage * 0.75))
+                if tension == 4:
+                    is_critical = True
+                damage = max(1, int(damage * 0.75 * tension_mult))
                 if title_atk_bonus > 0:
                     damage = max(1, damage + title_atk_bonus)
                 reduction = self.status_manager.get_damage_reduction_rate(enemy)
@@ -683,6 +700,13 @@ class BattleScene(BaseScene):
         elif target is not None:
             # 通常単体攻撃（target が None の場合は何もしない安全ガード）
             damage, is_critical = calculate_physical_damage(actor, target)
+            tension = actor.get("tension", 0)
+            if tension > 0:
+                mult = 2 ** tension
+                damage = max(1, int(damage * mult))
+                if tension == 4:
+                    is_critical = True  # MAX テンション = かいしん確定
+                actor["tension"] = 0  # テンションをリセット
             if title_atk_bonus > 0:
                 damage = max(1, damage + title_atk_bonus)
             reduction = self.status_manager.get_damage_reduction_rate(target)
@@ -936,6 +960,8 @@ class BattleScene(BaseScene):
             target["hp"] = 0
             target["alive"] = False
             self._push_message(f"{target['name']}をたおした！")
+            if side == "ally":
+                target["tension"] = 0  # 戦闘不能でテンションをリセット
             if side == "enemy":
                 bestiary = getattr(self.game, "bestiary", None)
                 if bestiary is not None:
@@ -1464,6 +1490,12 @@ class BattleScene(BaseScene):
             line = f"{ally['name']}  HP {ally['hp']:>3}/{ally['max_hp']:<3}  MP {ally['mp']:>2}/{ally['max_mp']:<2}"
             text = self.small_font.render(line, True, color)
             screen.blit(text, (panel.x + scaled(10), y))
+
+            tension = ally.get("tension", 0)
+            if tension > 0:
+                t_color = (255, 100, 0) if tension < 4 else (255, 50, 50)
+                t_text = self.small_font.render(f"気Lv{tension}", True, t_color)
+                screen.blit(t_text, (panel.x + scaled(10), y + scaled(14)))
 
             atb_x = panel.x + panel.w - scaled(170)
             atb_y = y + scaled(6)
