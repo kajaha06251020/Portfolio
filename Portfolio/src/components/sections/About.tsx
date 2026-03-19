@@ -31,7 +31,6 @@ export function About() {
               {[
                 'データ解析からサービス実装まで一貫対応',
                 '領域横断による課題解決',
-                'スケーラブルなシステム設計',
               ].map(item => (
                 <li key={item} className="text-sm text-fg/70 flex items-start gap-2">
                   <span className="text-cyan-500 mt-0.5">▸</span>
@@ -46,6 +45,7 @@ export function About() {
             <ul className="space-y-1">
               {[
                 'モデルの実運用・MLOps',
+                'スケーラブルなシステム構築',
                 'チームでの設計改善・アーキテクチャ改善',
               ].map(item => (
                 <li key={item} className="text-sm text-fg/70 flex items-start gap-2">
