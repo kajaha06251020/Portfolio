@@ -111,6 +111,8 @@ class BattleScene(BaseScene):
         self.allies = self._create_party()
         for ally in self.allies:
             ally.setdefault("tension", 0)
+        for ally in self.allies:
+            ally.setdefault("limit_gauge", 0.0)
         if self.pending_encounter_group:
             self.enemies = self._create_enemy_group_from_encounter(self.pending_encounter_group)
         else:
@@ -540,8 +542,18 @@ class BattleScene(BaseScene):
     # ------------------------------------------------------------------
     # メニューオプション
     # ------------------------------------------------------------------
+    def _get_effective_commands(self, actor: dict) -> list:
+        """アクターの状態に応じた有効なコマンドリストを返す。覚醒ゲージが満タンの場合は「覚醒」を追加。"""
+        commands = list(self.main_commands)
+        if actor.get("limit_gauge", 0.0) >= 1.0:
+            commands.append("覚醒")
+        return commands
+
     def _current_options(self):
         if self.menu_state == "main":
+            if self.active_actor_index is not None:
+                actor = self.allies[self.active_actor_index]
+                return self._get_effective_commands(actor)
             return self.main_commands
         if self.menu_state == "ability":
             actor = self.allies[self.active_actor_index]
@@ -600,8 +612,11 @@ class BattleScene(BaseScene):
             self._cancel_target_selection()
 
     def _confirm_main_command(self):
-        command = self.main_commands[self.menu_index]
         actor = self.allies[self.active_actor_index]
+        effective = self._get_effective_commands(actor)
+        if self.menu_index >= len(effective):
+            return
+        command = effective[self.menu_index]
 
         if command == "たたかう":
             weapon_data = self._get_actor_weapon_data(actor)
@@ -646,6 +661,54 @@ class BattleScene(BaseScene):
             else:
                 self._push_message("にげられない！")
                 self._end_actor_action()
+
+        elif command == "覚醒":
+            self._execute_limit_break()
+
+    # ------------------------------------------------------------------
+    # 覚醒/リミットブレイク
+    # ------------------------------------------------------------------
+    def _execute_limit_break(self):
+        """覚醒スキルを実行し、ゲージをリセットする。"""
+        actor = self.allies[self.active_actor_index]
+        actor["limit_gauge"] = 0.0
+        name = actor.get("name", "")
+
+        if name == "バッツ":
+            self._push_message(f"{name}の剣技・乱れ斬り！")
+            alive_enemies = [e for e in self.enemies if e["alive"]]
+            for _ in range(4):
+                for enemy in alive_enemies:
+                    damage, _ = calculate_physical_damage(actor, enemy)
+                    damage = max(1, int(damage * 0.5))
+                    self._deal_damage(enemy, damage, side="enemy")
+        elif name == "レナ":
+            self._push_message(f"{name}の聖なる光！")
+            for ally in self.allies:
+                if ally["alive"]:
+                    heal = int(ally["max_hp"] * 0.8)
+                    before = ally["hp"]
+                    ally["hp"] = min(ally["max_hp"], ally["hp"] + heal)
+                    actual = ally["hp"] - before
+                    self._add_popup(ally, f"+{actual}", (100, 220, 100))
+        elif name == "ガラフ":
+            self._push_message(f"{name}の大地砕き！")
+            alive_enemies = [e for e in self.enemies if e["alive"]]
+            if alive_enemies:
+                target = alive_enemies[0]
+                damage, _ = calculate_physical_damage(actor, target)
+                damage = max(1, int(damage * 3.0))
+                self._deal_damage(target, damage, side="enemy")
+        else:
+            self._push_message(f"{name}の全力攻撃！")
+            alive_enemies = [e for e in self.enemies if e["alive"]]
+            if alive_enemies:
+                target = alive_enemies[0]
+                damage, _ = calculate_physical_damage(actor, target)
+                damage = max(1, int(damage * 2.0))
+                self._deal_damage(target, damage, side="enemy")
+
+        self._end_actor_action()
 
     # ------------------------------------------------------------------
     # 攻撃実行（ターゲット選択後）
@@ -956,6 +1019,13 @@ class BattleScene(BaseScene):
     def _deal_damage(self, target: dict, damage: int, side: str):
         # Note: damage reduction (Protect/Shell) is applied by the caller
         # before invoking _deal_damage. Do NOT apply it again here.
+
+        # 覚醒ゲージ増加（味方がダメージを受けたとき）
+        if side == "ally" and damage > 0:
+            max_hp = target.get("max_hp", 1)
+            if max_hp > 0:
+                target["limit_gauge"] = min(1.0, target.get("limit_gauge", 0.0) + damage / max_hp)
+
         target["hp"] -= damage
         self._add_popup(target, str(damage), RED)
 
@@ -969,6 +1039,7 @@ class BattleScene(BaseScene):
             self._push_message(f"{target['name']}をたおした！")
             if side == "ally":
                 target["tension"] = 0  # 戦闘不能でテンションをリセット
+                target["limit_gauge"] = 0.0  # 戦闘不能で覚醒ゲージをリセット
             if side == "enemy":
                 bestiary = getattr(self.game, "bestiary", None)
                 if bestiary is not None:
@@ -1507,10 +1578,21 @@ class BattleScene(BaseScene):
             atb_x = panel.x + panel.w - scaled(170)
             atb_y = y + scaled(6)
             atb_w = scaled(150)
-            atb_h = scaled(12)
+            atb_h = scaled(10)
             pygame.draw.rect(screen, (28, 28, 28), (atb_x, atb_y, atb_w, atb_h), border_radius=scaled(3))
             pygame.draw.rect(screen, GREEN, (atb_x, atb_y, int(atb_w * ally["atb"]), atb_h), border_radius=scaled(3))
             pygame.draw.rect(screen, WHITE, (atb_x, atb_y, atb_w, atb_h), 1, border_radius=scaled(3))
+
+            # 覚醒ゲージバー（ATBバーの下）
+            limit = ally.get("limit_gauge", 0.0)
+            lim_x = atb_x
+            lim_y = atb_y + atb_h + scaled(2)
+            lim_w = atb_w
+            lim_h = scaled(5)
+            lim_fill_color = (255, 200, 0) if limit < 1.0 else (255, 140, 0)
+            pygame.draw.rect(screen, (28, 28, 28), (lim_x, lim_y, lim_w, lim_h), border_radius=scaled(2))
+            pygame.draw.rect(screen, lim_fill_color, (lim_x, lim_y, int(lim_w * limit), lim_h), border_radius=scaled(2))
+            pygame.draw.rect(screen, (180, 180, 180), (lim_x, lim_y, lim_w, lim_h), 1, border_radius=scaled(2))
 
     def _draw_message_window(self, screen: pygame.Surface):
         msg_rect = pygame.Rect(scaled(20), SCREEN_HEIGHT - scaled(145), SCREEN_WIDTH - scaled(40), scaled(70))
