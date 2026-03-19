@@ -22,8 +22,8 @@ export const profile: Profile = {
   },
   freelanceFrom: 2026,
   contact: {
-    email: 'your-email@example.com',   // TODO: 実際のメールアドレスに変更
+    email: 'shotacoding@gmail.com',
     github: 'https://github.com/kajaha06251020',
-    x: undefined,                       // TODO: 実際のXアカウントURLに変更
+    x: 'https://x.com/Shota__Okabe',
   },
 }
