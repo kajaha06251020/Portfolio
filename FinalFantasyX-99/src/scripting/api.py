@@ -140,7 +140,7 @@ class ScriptAPI:
                 return 0
             price = (map_scene.current_map_data or {}).get("inn_price", 0)
             if price == 0:
-                logger.debug("npc.get_inn_price(): inn_price not set for current map")
+                logger.debug("npc.get_inn_price(): inn_price not set for current map, returning 0")
             return int(price)
 
         # Re-fetch npc_table after all lua.execute blocks to ensure the reference is fresh
