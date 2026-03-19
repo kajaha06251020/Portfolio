@@ -35,7 +35,7 @@ class TitleManager:
 
     def check_and_award(self) -> list[str]:
         """未獲得の称号のうち条件を満たすものを付与し、新しく獲得した称号名リストを返す。"""
-        awarded = getattr(self.game, "titles", [])
+        awarded = list(getattr(self.game, "titles", []))  # defensive copy
         newly_awarded: list[str] = []
 
         for title in self._definitions:
