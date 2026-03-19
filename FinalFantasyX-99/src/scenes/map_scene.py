@@ -257,6 +257,10 @@ class MapScene(BaseScene):
 
     def update(self):
         """更新処理"""
+        # 昼夜サイクルは常に進む（フェード・ダイアログ中も）
+        self.game.day_time = (self.game.day_time + 1.0 / 60.0) % 300.0
+        self.game.is_night = self.game.day_time >= 150.0
+
         if self.fade_state is not None:
             self._update_fade_transition()
             return
@@ -343,10 +347,6 @@ class MapScene(BaseScene):
                 self._try_encounter()
                 self.encounter_steps = 0
 
-        # 昼夜サイクル更新
-        dt = 1.0 / 60.0
-        self.game.day_time = (self.game.day_time + dt) % 300.0
-        self.game.is_night = self.game.day_time >= 150.0
 
     def _point_in_zone(self, x: int, y: int, zone: dict) -> bool:
         zone_x = zone.get("x", 0)
