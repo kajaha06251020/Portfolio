@@ -24,6 +24,6 @@ export const profile: Profile = {
   contact: {
     email: 'your-email@example.com',   // TODO: 実際のメールアドレスに変更
     github: 'https://github.com/kajaha06251020',
-    x: 'https://x.com/',               // TODO: 実際のXアカウントに変更
+    x: undefined,                       // TODO: 実際のXアカウントURLに変更
   },
 }

@@ -95,6 +95,12 @@ export function Contact() {
             <div className="p-8 rounded border border-cyan-500/30 bg-cyan-500/5 text-center">
               <p className="text-cyan-400 font-mono text-lg mb-2">✓ Sent!</p>
               <p className="text-fg/60 text-sm">メッセージを送信しました。ありがとうございます。</p>
+              <button
+                onClick={() => { setStatus('idle'); setForm({ name: '', email: '', message: '' }) }}
+                className="mt-4 text-xs font-mono text-fg/40 hover:text-fg/70 transition-colors"
+              >
+                Send another →
+              </button>
             </div>
           ) : (
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
