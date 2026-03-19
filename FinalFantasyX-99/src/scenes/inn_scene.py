@@ -7,6 +7,8 @@ from __future__ import annotations
 import logging
 import pygame
 from src.scenes.base_scene import BaseScene
+from src.font import get_font
+from src.constants import FONT_SIZE_MEDIUM, FONT_SIZE_SMALL
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +58,8 @@ class InnScene(BaseScene):
         self._load_fonts()
 
     def _load_fonts(self) -> None:
-        try:
-            self._font = pygame.font.Font(None, 36)
-            self._small_font = pygame.font.Font(None, 28)
-        except Exception:
-            logger.exception("Failed to load fonts in InnScene")
+        self._font = get_font(FONT_SIZE_MEDIUM)
+        self._small_font = get_font(FONT_SIZE_SMALL)
 
     def handle_events(self, events) -> None:
         for event in events:
@@ -99,8 +98,8 @@ class InnScene(BaseScene):
     def _recover_party(self) -> None:
         """全パーティメンバーの HP/MP をインプレースで全回復する。"""
         for member in self.game.party:
-            member["hp"] = member.get("max_hp", member["hp"])
-            member["mp"] = member.get("max_mp", member["mp"])
+            member["hp"] = member["max_hp"]
+            member["mp"] = member["max_mp"]
 
     def update(self) -> None:
         pass
