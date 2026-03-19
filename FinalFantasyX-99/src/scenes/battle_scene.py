@@ -676,9 +676,8 @@ class BattleScene(BaseScene):
 
         if name == "バッツ":
             self._push_message(f"{name}の剣技・乱れ斬り！")
-            alive_enemies = [e for e in self.enemies if e["alive"]]
             for _ in range(4):
-                for enemy in alive_enemies:
+                for enemy in [e for e in self.enemies if e["alive"]]:
                     damage, _ = calculate_physical_damage(actor, enemy)
                     damage = max(1, int(damage * 0.5))
                     self._deal_damage(enemy, damage, side="enemy")
@@ -1036,7 +1035,10 @@ class BattleScene(BaseScene):
         if target["hp"] <= 0:
             target["hp"] = 0
             target["alive"] = False
-            self._push_message(f"{target['name']}をたおした！")
+            if side == "ally":
+                self._push_message(f"{target['name']}はたおれた！")
+            else:
+                self._push_message(f"{target['name']}をたおした！")
             if side == "ally":
                 target["tension"] = 0  # 戦闘不能でテンションをリセット
                 target["limit_gauge"] = 0.0  # 戦闘不能で覚醒ゲージをリセット
@@ -1608,7 +1610,7 @@ class BattleScene(BaseScene):
             return
         if self.menu_state == "target_selection":
             # ターゲット選択中はコマンドウィンドウにターゲット名を表示
-            cmd_rect = pygame.Rect(SCREEN_WIDTH - scaled(360), SCREEN_HEIGHT - scaled(145), scaled(340), scaled(135))
+            cmd_rect = pygame.Rect(SCREEN_WIDTH - scaled(360), SCREEN_HEIGHT - scaled(200), scaled(340), scaled(185))
             pygame.draw.rect(screen, (20, 30, 78), cmd_rect, border_radius=scaled(5))
             pygame.draw.rect(screen, WHITE, cmd_rect, 2, border_radius=scaled(5))
 
@@ -1624,7 +1626,7 @@ class BattleScene(BaseScene):
                     self._draw_cursor(screen, x - scaled(14), y + scaled(2))
             return
 
-        cmd_rect = pygame.Rect(SCREEN_WIDTH - scaled(360), SCREEN_HEIGHT - scaled(145), scaled(340), scaled(135))
+        cmd_rect = pygame.Rect(SCREEN_WIDTH - scaled(360), SCREEN_HEIGHT - scaled(200), scaled(340), scaled(185))
         pygame.draw.rect(screen, (20, 30, 78), cmd_rect, border_radius=scaled(5))
         pygame.draw.rect(screen, WHITE, cmd_rect, 2, border_radius=scaled(5))
 
