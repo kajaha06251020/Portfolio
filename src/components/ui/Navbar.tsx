@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { profile } from '../../data/profile'
 
 const NAV_ITEMS = [
   { label: 'Works', href: '#works' },
@@ -34,7 +35,7 @@ export function Navbar() {
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="text-lg font-bold font-mono text-gradient-cyan-purple"
         >
-          kajaha
+          {profile.name}
         </button>
         <ul className="flex gap-8">
           {NAV_ITEMS.map(item => (

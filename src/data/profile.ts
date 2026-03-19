@@ -1,5 +1,6 @@
 export type Profile = {
   name: string
+  nameJa: string
   catchcopy: { ja: string; en: string }
   bio: { ja: string; en: string }
   freelanceFrom: number
@@ -11,7 +12,8 @@ export type Profile = {
 }
 
 export const profile: Profile = {
-  name: 'kajaha',
+  name: 'Shota Okabe',
+  nameJa: '岡部 翔太',
   catchcopy: {
     ja: 'データ × コード × 設計',
     en: 'Data × Code × Design',

@@ -8,7 +8,7 @@ describe('projects data', () => {
     projects.forEach(p => {
       expect(p.id).toBeTruthy()
       expect(p.title).toBeTruthy()
-      expect(p.github).toMatch(/^https:\/\/github\.com/)
+      if (p.github) expect(p.github).toMatch(/^https:\/\/github\.com/)
       expect(['data', 'backend', 'frontend']).toContain(p.category)
     })
   })

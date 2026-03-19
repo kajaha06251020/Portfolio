@@ -74,6 +74,11 @@ export function Works() {
           <ProjectCard key={project.id} project={project} />
         ))}
       </div>
+
+      {/* 注記 */}
+      <p className="mt-10 text-sm text-fg/35 font-mono text-center border-t border-white/5 pt-8">
+        ▸ GitHub に公開していない制作物も多数あります。詳細はお気軽にお問い合わせください。
+      </p>
     </section>
   )
 }

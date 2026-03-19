@@ -76,18 +76,22 @@ export function Hero() {
 
         <h1
           ref={titleRef}
-          className="text-5xl md:text-7xl font-black text-fg leading-tight mb-4 tracking-tight"
+          className="text-5xl md:text-7xl font-black text-fg leading-tight mb-2 tracking-tight"
         >
-          {profile.catchcopy.ja}
+          {profile.name}
         </h1>
+
+        <p className="text-2xl md:text-3xl font-bold text-fg/40 mb-6 tracking-wider">
+          {profile.nameJa}
+        </p>
 
         <p
           ref={subtitleRef}
-          className="text-base md:text-lg text-fg/60 font-mono mb-10 leading-relaxed"
+          className="text-lg md:text-xl text-fg/60 font-mono mb-10 leading-relaxed"
         >
-          {profile.catchcopy.en}
+          {profile.catchcopy.ja}
           <br />
-          Data Science × Backend × Frontend
+          {profile.catchcopy.en}
         </p>
 
         <button

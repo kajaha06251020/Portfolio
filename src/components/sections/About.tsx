@@ -14,8 +14,8 @@ export function About() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* 自己紹介 */}
         <div className="about-block space-y-4">
-          <p className="text-fg/80 leading-relaxed">{profile.bio.ja}</p>
-          <p className="text-fg/50 text-sm leading-relaxed">{profile.bio.en}</p>
+          <p className="text-base text-fg/80 leading-relaxed">{profile.bio.ja}</p>
+          <p className="text-base text-fg/50 leading-relaxed">{profile.bio.en}</p>
         </div>
 
         {/* ハイライト */}
@@ -32,7 +32,7 @@ export function About() {
                 'データ解析からサービス実装まで一貫対応',
                 '領域横断による課題解決',
               ].map(item => (
-                <li key={item} className="text-sm text-fg/70 flex items-start gap-2">
+                <li key={item} className="text-base text-fg/70 flex items-start gap-2">
                   <span className="text-cyan-500 mt-0.5">▸</span>
                   {item}
                 </li>
@@ -48,7 +48,7 @@ export function About() {
                 'スケーラブルなシステム構築',
                 'チームでの設計改善・アーキテクチャ改善',
               ].map(item => (
-                <li key={item} className="text-sm text-fg/70 flex items-start gap-2">
+                <li key={item} className="text-base text-fg/70 flex items-start gap-2">
                   <span className="text-purple-400 mt-0.5">▸</span>
                   {item}
                 </li>

@@ -4,7 +4,7 @@ export type Project = {
   description: { ja: string; en: string }
   tags: string[]
   category: 'data' | 'backend' | 'frontend'
-  github: string
+  github?: string
   demo?: string
   image?: string
 }
@@ -48,7 +48,6 @@ export const projects: Project[] = [
     },
     tags: ['TypeScript', 'Node.js'],
     category: 'backend',
-    github: 'https://github.com/kajaha06251020/LifeOS',
   },
   {
     id: 'pdf-crawler',
@@ -59,7 +58,6 @@ export const projects: Project[] = [
     },
     tags: ['Node.js', 'TypeScript'],
     category: 'backend',
-    github: 'https://github.com/kajaha06251020/PdfCrawler',
   },
   {
     id: 'animemories',
@@ -70,6 +68,5 @@ export const projects: Project[] = [
     },
     tags: ['React', 'TypeScript'],
     category: 'frontend',
-    github: 'https://github.com/kajaha06251020/animemories',
   },
 ]
