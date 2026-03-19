@@ -44,6 +44,8 @@ class Game:
             "enemies_defeated": {},  # {敵名: 討伐数}
         }
         self.playtime_seconds: float = 0.0
+        self.day_time: float = 0.0   # 0.0 → 300.0, loops. <150 = day, >=150 = night
+        self.is_night: bool = False
         self.titles: list = []            # 獲得済み称号IDリスト
         self.battles_fled: int = 0        # 逃走回数
         self.total_damage_dealt: int = 0  # 累計ダメージ量

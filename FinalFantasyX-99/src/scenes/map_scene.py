@@ -103,6 +103,9 @@ class MapScene(BaseScene):
 
         # セーブスロットUI（game.pyでセット）
         self.save_slot_ui = None
+
+        # 昼夜オーバーレイ
+        self._night_surface: pygame.Surface | None = None
         
     def _load_maps(self):
         """マップデータを読み込み"""
@@ -188,6 +191,11 @@ class MapScene(BaseScene):
                 self._location_name_alpha = 0
                 self._location_name_timer = 0.0
                 self._location_name_phase = "in"
+
+        # 夜オーバーレイサーフェスを事前生成
+        if self._night_surface is None:
+            self._night_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            self._night_surface.fill((10, 10, 60, 80))
 
         # BGMを再生
         self._play_map_bgm()
@@ -328,10 +336,17 @@ class MapScene(BaseScene):
 
             self.encounter_steps += 1
 
-            # エンカウント判定
-            if self.encounter_steps >= self.encounter_rate:
+            # エンカウント判定（夜は遭遇率1.5倍：歩数しきい値を0.67倍にする）
+            night_rate_bonus = 0.67 if getattr(self.game, "is_night", False) else 1.0
+            effective_rate = max(10, int(self.encounter_rate * night_rate_bonus))
+            if self.encounter_steps >= effective_rate:
                 self._try_encounter()
                 self.encounter_steps = 0
+
+        # 昼夜サイクル更新
+        dt = 1.0 / 60.0
+        self.game.day_time = (self.game.day_time + dt) % 300.0
+        self.game.is_night = self.game.day_time >= 150.0
 
     def _point_in_zone(self, x: int, y: int, zone: dict) -> bool:
         zone_x = zone.get("x", 0)
@@ -1567,6 +1582,21 @@ class MapScene(BaseScene):
         if self._script_fade_alpha > 0:
             self._script_fade_surface.set_alpha(self._script_fade_alpha)
             screen.blit(self._script_fade_surface, (0, 0))
+
+        # 夜のオーバーレイ（スクリプトフェードの後、HUD要素の前）
+        if getattr(self.game, "is_night", False) and self._night_surface is not None:
+            screen.blit(self._night_surface, (0, 0))
+
+        # 昼夜インジケーター（右上HUD）
+        time_label = "夜" if getattr(self.game, "is_night", False) else "昼"
+        time_color = (100, 100, 200) if getattr(self.game, "is_night", False) else (255, 220, 100)
+        time_surf = self._npc_label_font.render(time_label, True, time_color)
+        time_x = SCREEN_WIDTH - time_surf.get_width() - scaled(8)
+        time_y = scaled(8)
+        time_bg = pygame.Surface((time_surf.get_width() + scaled(6), time_surf.get_height() + scaled(4)), pygame.SRCALPHA)
+        time_bg.fill((0, 0, 0, 140))
+        screen.blit(time_bg, (time_x - scaled(3), time_y - scaled(2)))
+        screen.blit(time_surf, (time_x, time_y))
 
         # ロケーション名表示（最前面）
         self._draw_location_name(screen)

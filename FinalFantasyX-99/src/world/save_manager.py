@@ -164,6 +164,7 @@ class SaveManager:
             "titles": list(getattr(self.game, "titles", [])),
             "battles_fled": getattr(self.game, "battles_fled", 0),
             "total_damage_dealt": getattr(self.game, "total_damage_dealt", 0),
+            "day_time": getattr(self.game, "day_time", 0.0),
         }
 
     def _deserialize(self, data: dict) -> None:
@@ -203,3 +204,6 @@ class SaveManager:
             self.game.battles_fled = data["battles_fled"]
         if "total_damage_dealt" in data:
             self.game.total_damage_dealt = data["total_damage_dealt"]
+        if "day_time" in data:
+            self.game.day_time = float(data["day_time"])
+            self.game.is_night = self.game.day_time >= 150.0
