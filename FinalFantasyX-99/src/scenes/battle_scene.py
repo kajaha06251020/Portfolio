@@ -665,6 +665,7 @@ class BattleScene(BaseScene):
         accuracy_mult = self.status_manager.get_accuracy_multiplier(actor)
         if accuracy_mult < 1.0 and random.random() > accuracy_mult:
             self._push_message(f"{actor['name']}のこうげき！ しかしミスした！")
+            actor["tension"] = 0  # ミス時もテンションを消費
             self._end_actor_action()
             return
 
@@ -845,6 +846,9 @@ class BattleScene(BaseScene):
         """単体対象アビリティの実行（ターゲット選択後）"""
         actor = self.allies[self.active_actor_index]
 
+        # テンション消費（ジョブ技使用でもリセット）
+        actor["tension"] = 0
+
         # MP消費
         actor["mp"] -= ability.mp_cost
 
@@ -907,6 +911,7 @@ class BattleScene(BaseScene):
     def _execute_ability_all_enemies(self, ability):
         """全敵対象アビリティの実行"""
         actor = self.allies[self.active_actor_index]
+        actor["tension"] = 0
         actor["mp"] -= ability.mp_cost
         power = int((ability.power[0] + ability.power[1]) / 2) if isinstance(ability.power, (list, tuple)) else ability.power
         for enemy in self.enemies:
@@ -920,6 +925,7 @@ class BattleScene(BaseScene):
     def _execute_ability_self(self, ability):
         """自身対象アビリティの実行"""
         actor = self.allies[self.active_actor_index]
+        actor["tension"] = 0
         actor["mp"] -= ability.mp_cost
         if ability.effect == "shield_stance":
             actor["defending"] = True
@@ -931,6 +937,7 @@ class BattleScene(BaseScene):
     def _execute_ability_all_allies(self, ability):
         """全味方対象アビリティの実行"""
         actor = self.allies[self.active_actor_index]
+        actor["tension"] = 0
         actor["mp"] -= ability.mp_cost
         if ability.effect == "increase_evasion":
             self._push_message(f"{actor['name']}の{ability.name}！ 回避率アップ！")
