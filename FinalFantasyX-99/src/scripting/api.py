@@ -127,6 +127,32 @@ class ScriptAPI:
             end
         """)
 
+        # inn support
+        api = self
+
+        def npc_get_inn_price() -> int:
+            if api._game is None:
+                logger.warning("npc.get_inn_price(): game is None")
+                return 0
+            map_scene = api._game.scenes.get("map")
+            if map_scene is None:
+                logger.warning("npc.get_inn_price(): MapScene not found, inn_price defaults to 0")
+                return 0
+            price = (map_scene.current_map_data or {}).get("inn_price", 0)
+            if price == 0:
+                logger.debug("npc.get_inn_price(): inn_price not set for current map")
+            return int(price)
+
+        # Re-fetch npc_table after all lua.execute blocks to ensure the reference is fresh
+        npc_table = lua.eval("npc")
+        npc_table["get_inn_price"] = npc_get_inn_price
+
+        lua.execute("""
+            function npc.open_inn(price)
+                coroutine.yield("inn", price)
+            end
+        """)
+
         logger.debug("Registered npc namespace")
 
     # ------------------------------------------------------------------

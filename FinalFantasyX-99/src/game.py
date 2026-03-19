@@ -16,6 +16,7 @@ from src.world.world_state_manager import WorldStateManager
 from src.quest.quest_manager import QuestManager
 from src.quest.quest_log_ui import QuestLogUI
 from src.scenes.shop_scene import ShopScene
+from src.scenes.inn_scene import InnScene
 from src.world.treasure import TreasureManager
 from src.world.gimmick_manager import GimmickManager
 from src.world.door_manager import DoorManager
@@ -85,6 +86,7 @@ class Game:
             "battle": BattleScene(self),
             "menu": MenuScene(self),
             "shop": ShopScene(self),
+            "inn": InnScene(self),
             "game_over": GameOverScene(self),
         }
         self.current_scene = "title"

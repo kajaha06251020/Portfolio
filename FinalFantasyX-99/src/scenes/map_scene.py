@@ -780,6 +780,15 @@ class MapScene(BaseScene):
                     self.game.push_scene("shop")
                 else:
                     logger.warning("ShopScene not registered")
+            elif cmd == "inn" and len(yielded) >= 2:
+                # 宿屋遷移: コルーチンを保持したまま InnScene へ
+                price = int(yielded[1])
+                inn_scene = self.game.scenes.get("inn")
+                if inn_scene:
+                    inn_scene.set_price(price)
+                    self.game.push_scene("inn")
+                else:
+                    logger.warning("InnScene not registered")
             elif cmd == "fade_out":
                 self._script_fade_state = "out"
                 self._script_fade_alpha = 0
