@@ -1,0 +1,1 @@
+# SlopShield Field Test\n\nThis file tests SlopShield's PR quality analysis.\nAdded: 2026-03-31T00:45:44Z\n\nconst password = "super_secret_123";\neval(userInput);\n
