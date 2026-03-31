@@ -1,5 +1,5 @@
-// SlopShield Field Test v2 - Security patterns
-// Updated: 2026-03-31T01:48:09Z
+// SlopShield Field Test v3
+// 2026-03-31T02:35:08Z
 const password = "super_secret_password_123";
 const apiKey = "sk-proj-abc123def456ghi789";
 eval(userInput);
